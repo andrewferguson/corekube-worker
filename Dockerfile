@@ -29,8 +29,6 @@ RUN make install
 WORKDIR ../
 
 # Install corekube_worker
-RUN ls
 COPY ./ corekube_worker/
-RUN ls corekube_worker
 WORKDIR corekube_worker/
 RUN make
