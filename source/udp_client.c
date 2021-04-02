@@ -116,14 +116,9 @@ int main(int argc, char const *argv[]) {
         // within a UplinkNASTransport message, and is
         // taken from oai.pcap (Jon's RAN emulator)
         "0f0a0c0e"
-        "000d"
-        "40410000050000000200010008000480"
-        "000010001a00161527bfb377f7020745"
-        "010bf602f839000401"
-        "00000001" // this is the TMSI
-        "006440"
-        "080002f83900e00000004300060002f8"
-        "390001";
+        "000d404000000500000002000100080003400001001a00161527bd9a"
+        "d244020745010bf602f83900040100000001006440080002f83900e000000043"
+        "00060002f8390001";
         // an (unsupported) alternative detach request,
         // encapsulated within an InitialUEMessage
         // (which does not contain the MME_UE_ID, so
