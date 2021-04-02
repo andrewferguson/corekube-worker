@@ -14,8 +14,9 @@
 #include "core/include/core_debug.h"
 #include "core/include/3gpp_types.h"
 
-#define PORT    5566 
-#define MAXLINE 1024 
+#define MAXLINE 1024
+
+int PORT;
   
 // Driver code 
 int send_message(char *mme_ip, char *payload) {
@@ -61,12 +62,14 @@ int send_message(char *mme_ip, char *payload) {
 
 // Driver code
 int main(int argc, char const *argv[]) {
-    if(argc != 3) {
-        printf("RUN: ./udp_client <MME_IP_ADDRESS> [MESSAGE_NUMBER=0]\n");
+    if(argc != 4) {
+        printf("RUN: ./udp_client <MME_IP_ADDRESS> <PORT> [MESSAGE_NUMBER=0]\n");
         return 1;
     }
 
-    int message_number = atoi(argv[2]);
+    PORT = atoi(argv[2]);
+
+    int message_number = atoi(argv[3]);
 
     char *S1SetupRequest =
         "0f0a0c0e"
@@ -114,7 +117,7 @@ int main(int argc, char const *argv[]) {
     char *DetachRequest =
         // the follow detach request is encapsulated
         // within a UplinkNASTransport message, and is
-        // taken from oai.pcap (Jon's RAN emulator)
+        // taken from Jon's RAN emulator
         "0f0a0c0e"
         "000d404000000500000002000100080003400001001a00161527bd9a"
         "d244020745010bf602f83900040100000001006440080002f83900e000000043"
