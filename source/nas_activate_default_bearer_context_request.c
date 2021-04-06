@@ -32,9 +32,10 @@ status_t esm_build_activate_default_bearer_context_request(pkbuf_t **pkbuf)
     nas_protocol_configuration_options_t *protocol_configuration_options =
         &activate_default_eps_bearer_context_request->protocol_configuration_options;
 
-    pdn_t *pdn = NULL;
+    pdn_t pdn_struct;
+    pdn_t *pdn = &pdn_struct;
 
-    status_t get_pdn =  get_default_pdn(&pdn);
+    status_t get_pdn =  get_default_pdn(&pdn_struct);
     d_assert(get_pdn == CORE_OK, return CORE_ERROR, "Failed to get default PDN");
 
     memset(&message, 0, sizeof(message));
@@ -95,17 +96,12 @@ status_t esm_build_activate_default_bearer_context_request(pkbuf_t **pkbuf)
 }
 
 
-status_t get_default_pdn(pdn_t **pdn_out) {
+status_t get_default_pdn(pdn_t *pdn) {
     d_info("Getting Default PDN");
-
-    pdn_t *pdn;
 
     qos_t *qos;
     paa_t *paa;
     ip_t *pgw_ip;
-
-    pdn = core_calloc(1, sizeof(pdn_t));
-    memset(pdn, 0, sizeof(pdn_t));
 
     // set the AP name and type
     c_int8_t *apn_name = "corekube ipv4";
@@ -135,9 +131,6 @@ status_t get_default_pdn(pdn_t **pdn_out) {
     pgw_ip->ipv4 = 1;
     pgw_ip->len = IPV4_LEN;
     pgw_ip->addr = inet_addr("8.8.8.8");
-
-    // set the output
-    *pdn_out = pdn;
 
     return CORE_OK;
 }
