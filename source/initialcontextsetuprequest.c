@@ -72,7 +72,7 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     const int NUM_PULL_ITEMS = 9;
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
-        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2, TMSI);
+        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER_NO_INC, KASME_1, KASME_2, TMSI);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 
@@ -278,11 +278,8 @@ status_t s1ap_build_initial_context_setup_request(
     memcpy(kasme+SHA256_DIGEST_SIZE/2, db_pulls->kasme2, SHA256_DIGEST_SIZE/2);
 
     // the ul_count is stored in the DB as 6-bytes, we only care about 4-bytes
-    // TODO: the "-1" is a very temporary fix and MUST BE CORRECTED - although it
-    // will work fine for generating the Kenb, from now on the UE_NAS_SQN will be
-    // out by one. Instead, the proper approach would be to get all the DB
-    // prerequisites at the start of handling the Security Mode Command, and use
-    // the UE_NAS_SQN from there.
+    // subtract 1 from the count because it is accessed separately and therefore will
+    // be one larger than it would otherwise be
     c_uint32_t nas_ul_count = array_to_int(db_pulls->ue_nas_sequence_number+2) - 1;
 
     // calculate the Kenb from Kasme
