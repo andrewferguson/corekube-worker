@@ -62,15 +62,6 @@ status_t nas_build_cleartext_security_mode_command(nas_message_t *message) {
 status_t generate_nas_keys(c_uint8_t *kasme, c_uint8_t *knas_int, c_uint8_t *knas_enc) {
     d_info("Generating NAS keys");
 
-    // although this is part of the security mode command,
-    // this function is actually called during the handling
-    // of the NAS attach request command, because that is when
-    // the Kasme key (used to generate NAS keys) is generated
-
-    // the two keys are then stored in the DB during the handling
-    // of the NAS attach request command until they are needed
-    // during the handling of the security mode command
-
     // CoreKube only supports EEA0 and 128-EIA2
     // UE support for these algorithms has already been verified in
     // the check_network_capabilities() function

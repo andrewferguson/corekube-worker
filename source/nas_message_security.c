@@ -9,6 +9,7 @@
 
 #include "s1ap_conv.h"
 #include "core_aes_cmac.h"
+#include "nas_security_mode_command.h"
 
 // external reference to variable in the listener
 extern int db_sock;
@@ -47,8 +48,15 @@ status_t nas_security_encode(nas_message_t *message, corekube_db_pulls_t *db_pul
     }
 
     if (new_security_context)
-        // TODO: functionality needed in DB to implement this
         d_info("New security context");
+    
+    c_uint8_t kasme[32];
+    c_uint8_t int_key[16];
+    c_uint8_t enc_key[16];
+    memcpy(kasme, db_pulls->kasme1, 16);
+    memcpy(kasme+16, db_pulls->kasme2, 16);
+    status_t key_gen = generate_nas_keys(kasme, int_key, enc_key);
+    d_assert(key_gen == CORE_OK, return CORE_ERROR,"Failed to generate INT / ENC key from KASME");
 
     if (COREKUBE_ENC_ALGORITHM == NAS_SECURITY_ALGORITHMS_EEA0)
         ciphered = 0;
@@ -74,7 +82,7 @@ status_t nas_security_encode(nas_message_t *message, corekube_db_pulls_t *db_pul
 
         if (ciphered) {
             // encrypt NAS message
-            nas_encrypt(COREKUBE_ENC_ALGORITHM, db_pulls->enc_key, nas_dl_count, NAS_SECURITY_BEARER, NAS_SECURITY_DOWNLINK_DIRECTION, new);
+            nas_encrypt(COREKUBE_ENC_ALGORITHM, enc_key, nas_dl_count, NAS_SECURITY_BEARER, NAS_SECURITY_DOWNLINK_DIRECTION, new);
         }
 
         // encode sequence number
@@ -87,9 +95,9 @@ status_t nas_security_encode(nas_message_t *message, corekube_db_pulls_t *db_pul
 
             // calculate NAS MAC(message authentication code)
             d_info("Int key:");
-            d_print_hex(db_pulls->int_key, 16);
+            d_print_hex(int_key, 16);
             d_info("NAS DL count: %d, raw:", nas_dl_count);
-            nas_mac_calculate(COREKUBE_INT_ALGORITHM, db_pulls->int_key, nas_dl_count, NAS_SECURITY_BEARER, NAS_SECURITY_DOWNLINK_DIRECTION, new, mac);
+            nas_mac_calculate(COREKUBE_INT_ALGORITHM, int_key, nas_dl_count, NAS_SECURITY_BEARER, NAS_SECURITY_DOWNLINK_DIRECTION, new, mac);
             d_info("Calculated MAC:");
             d_print_hex(mac, 4);
             memcpy(&h.message_authentication_code, mac, sizeof(mac));
@@ -114,6 +122,14 @@ status_t nas_security_encode(nas_message_t *message, corekube_db_pulls_t *db_pul
 // nas_security_decode() in nextepc/src/mme/nas_security.c
 status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pulls, pkbuf_t **pkbuf_out) {
     d_info("Decoding NAS Security message");
+
+    c_uint8_t kasme[32];
+    c_uint8_t int_key[16];
+    c_uint8_t enc_key[16];
+    memcpy(kasme, db_pulls->kasme1, 16);
+    memcpy(kasme+16, db_pulls->kasme2, 16);
+    status_t key_gen = generate_nas_keys(kasme, int_key, enc_key);
+    d_assert(key_gen == CORE_OK, return CORE_ERROR,"Failed to generate INT / ENC key from KASME");
 
     nas_security_header_type_t security_header_type;
     pkbuf_t *pkbuf = NULL;
@@ -180,7 +196,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
         memcpy(original_mac, pkbuf->payload + 2, SHORT_MAC_SIZE);
 
         nas_mac_calculate(COREKUBE_INT_ALGORITHM,
-            db_pulls->int_key, nas_ul_count, NAS_SECURITY_BEARER,
+            int_key, nas_ul_count, NAS_SECURITY_BEARER,
             NAS_SECURITY_UPLINK_DIRECTION, pkbuf, mac);
 
         pkbuf->len = original_pkbuf_len;
@@ -246,7 +262,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
 
             /* calculate NAS MAC(message authentication code) */
             nas_mac_calculate(COREKUBE_INT_ALGORITHM,
-                db_pulls->int_key, nas_ul_count, NAS_SECURITY_BEARER, 
+                int_key, nas_ul_count, NAS_SECURITY_BEARER, 
                 NAS_SECURITY_UPLINK_DIRECTION, pkbuf, mac);
             h->message_authentication_code = original_mac;
 
@@ -266,7 +282,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
         {
             /* decrypt NAS message */
             nas_encrypt(COREKUBE_ENC_ALGORITHM,
-                db_pulls->enc_key, nas_ul_count, NAS_SECURITY_BEARER,
+                enc_key, nas_ul_count, NAS_SECURITY_BEARER,
                 NAS_SECURITY_UPLINK_DIRECTION, pkbuf);
         }
     }
@@ -331,13 +347,15 @@ status_t get_NAS_decode_security_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mm
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     core_free(raw_mme_ue_id.buf);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
-        INT_KEY, ENC_KEY, UE_NAS_SEQUENCE_NUMBER);
+        KASME_1, KASME_2, UE_NAS_SEQUENCE_NUMBER);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
+    d_info("DB RAW");
+    d_print_hex(buffer, n);
 
     return CORE_OK;
 }

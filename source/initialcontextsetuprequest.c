@@ -65,14 +65,14 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     //     emm_build_attach_accept(): 
     //          TMSI
     //          nas_security_encode():
-    //              epc_nas_sequence_number, enc_key, int_key
+    //              epc_nas_sequence_number, kasme
     //     s1ap_build_initial_context_setup_request():
     //          mme_ue_s1ap_id, enb_ue_s1ap_id, kasme1, kasme2, ue_nas_sequence_number
 
     const int NUM_PULL_ITEMS = 9;
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
-        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER_NO_INC, KASME_1, KASME_2, TMSI);
+        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER_NO_INC, KASME_1, KASME_2, TMSI);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 

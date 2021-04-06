@@ -54,7 +54,7 @@ status_t get_nas_authentication_response_prerequisites_from_db(S1AP_MME_UE_S1AP_
 
     const int NUM_PULL_ITEMS = 4;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
-        AUTH_RES, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER);
+        AUTH_RES, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 

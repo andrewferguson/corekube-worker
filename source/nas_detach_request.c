@@ -73,7 +73,7 @@ status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, 
 
     const int NUM_PULL_ITEMS = 7;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
-        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2);
+        MME_UE_S1AP_ID, ENB_UE_S1AP_ID, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 
