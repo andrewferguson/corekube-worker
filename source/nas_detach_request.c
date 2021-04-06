@@ -13,7 +13,7 @@
 #include "s1ap_conv.h"
 
 // external reference to variable in the listener
-extern char* db_ip_address;
+extern int db_sock;
 
 status_t nas_handle_detach_request(nas_message_t *nas_detach_message, S1AP_MME_UE_S1AP_ID_t *mme_ue_id, pkbuf_t **nas_pkbuf) {
     d_info("Handling NAS Detach Request");
@@ -51,7 +51,6 @@ status_t nas_handle_detach_request(nas_message_t *nas_detach_message, S1AP_MME_U
 status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls) {
     d_info("Fetching Detach Accept state from DB");
 
-    int sock = db_connect(db_ip_address, 0);
     int n;
 
     // determine the identifier in the detach request
@@ -69,16 +68,14 @@ status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, 
             break;
         default:
             d_error("Unknown EPS mobile identity type %d", identity_type);
-            db_disconnect(sock);
             return CORE_ERROR;
     }
 
     const int NUM_PULL_ITEMS = 7;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2);
-    send_request(sock, buffer, n);
-    n = recv_response(sock, buffer, 1024);
-    db_disconnect(sock);
+    send_request(db_sock, buffer, n);
+    n = recv_response(db_sock, buffer, 1024);
 
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 

@@ -13,7 +13,7 @@
 #include <libck.h>
 
 // external reference to variable in the listener
-extern char* db_ip_address;
+extern int db_sock;
 
 status_t nas_handle_authentication_response(nas_message_t *nas_message, S1AP_MME_UE_S1AP_ID_t *mme_ue_id, pkbuf_t **nas_pkbuf) {
     d_info("Handling NAS Authentication Message");
@@ -43,7 +43,6 @@ status_t get_nas_authentication_response_prerequisites_from_db(S1AP_MME_UE_S1AP_
     OCTET_STRING_t raw_mme_ue_id;
     s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
 
-    int sock = db_connect(db_ip_address, 0);
     int n;
 
     // reset the NAS sequence numbers to zero, because the Security Mode Command
@@ -56,9 +55,8 @@ status_t get_nas_authentication_response_prerequisites_from_db(S1AP_MME_UE_S1AP_
     const int NUM_PULL_ITEMS = 4;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         AUTH_RES, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER);
-    send_request(sock, buffer, n);
-    n = recv_response(sock, buffer, 1024);
-    db_disconnect(sock);
+    send_request(db_sock, buffer, n);
+    n = recv_response(db_sock, buffer, 1024);
 
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 

@@ -21,7 +21,7 @@
 #include <libck.h>
 
 // external reference to variable in the listener
-extern char* db_ip_address;
+extern int db_sock;
 
 status_t nas_handle_attach_request(nas_message_t *nas_attach_message, S1AP_ENB_UE_S1AP_ID_t *enb_ue_id, S1AP_PLMNidentity_t *PLMNidentity, S1AP_MME_UE_S1AP_ID_t *mme_ue_id, pkbuf_t **nas_pkbuf) {
     d_info("Handling NAS Attach Request");
@@ -64,16 +64,14 @@ status_t get_attach_request_prerequisites_from_db(nas_mobile_identity_imsi_t *im
     status_t get_raw_imsi = extract_raw_imsi(imsi, raw_imsi);
     d_assert(get_raw_imsi == CORE_OK, return CORE_ERROR, "Could not get raw IMSI");
 
-    int sock = db_connect(db_ip_address, 0);
     int n;
 
     const int NUM_PULL_ITEMS = 5;
     n = push_items(buffer, IMSI, (uint8_t *)raw_imsi, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KEY, OPC, RAND, EPC_NAS_SEQUENCE_NUMBER, MME_UE_S1AP_ID);
-    send_request(sock, buffer, n);
-    n = recv_response(sock, buffer, 1024);
-    db_disconnect(sock);
+    send_request(db_sock, buffer, n);
+    n = recv_response(db_sock, buffer, 1024);
 
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 
@@ -92,7 +90,6 @@ status_t save_attach_request_info_in_db(nas_mobile_identity_imsi_t * imsi, nas_a
     OCTET_STRING_t raw_enb_ue_id;
     s1ap_uint32_to_OCTET_STRING(*enb_ue_id, &raw_enb_ue_id);
 
-    int sock = db_connect(db_ip_address, 0);
     uint8_t buf[1024];
     int n;
 
@@ -104,12 +101,10 @@ status_t save_attach_request_info_in_db(nas_mobile_identity_imsi_t * imsi, nas_a
         KASME_1, auth_vec->kasme,
         KASME_2, (auth_vec->kasme)+16);
     n = pull_items(buf, n, 0);
-    send_request(sock, buf, n);
+    send_request(db_sock, buf, n);
 
     // don't forget to free the raw_enb_ue_id
     core_free(raw_enb_ue_id.buf);
-
-    db_disconnect(sock);
 
     return CORE_OK;
 }

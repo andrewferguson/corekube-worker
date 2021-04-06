@@ -16,7 +16,7 @@
 #include "nas_security_mode_command.h"
 
 // external reference to variable in the listener
-extern char* db_ip_address;
+extern int db_sock;
 
 // the following function is adapted from 
 // nas_send_attach_accept() in the file 
@@ -58,7 +58,6 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     OCTET_STRING_t raw_mme_ue_id;
     s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
 
-    int sock = db_connect(db_ip_address, 0);
     int n;
 
     // required items from DB:
@@ -74,9 +73,8 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         MME_UE_S1AP_ID, ENB_UE_S1AP_ID, INT_KEY, ENC_KEY, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2, TMSI);
-    send_request(sock, buffer, n);
-    n = recv_response(sock, buffer, 1024);
-    db_disconnect(sock);
+    send_request(db_sock, buffer, n);
+    n = recv_response(db_sock, buffer, 1024);
 
     // free the temporary MME_UE_ID
     core_free(raw_mme_ue_id.buf);

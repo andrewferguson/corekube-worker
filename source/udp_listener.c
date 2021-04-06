@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <libck.h>
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
@@ -14,7 +15,7 @@
 #define MME_LISTEN_PORT 5566
 #define BUFFER_LEN 1024
 
-char *db_ip_address;
+int db_sock;
 
 int configure_udp_socket(char * mme_ip_address)
 {
@@ -143,12 +144,13 @@ int main(int argc, char const *argv[])
 	core_initialize();
 
 	// setup the DB IP address
-	db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
-	memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
+	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
+	//memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
+	db_sock = db_connect((char *)argv[2], 0);
 
 	start_listener((char *)argv[1]);
 
-	core_free(db_ip_address);
+	db_disconnect(db_sock);
 
 	return 0;
 }

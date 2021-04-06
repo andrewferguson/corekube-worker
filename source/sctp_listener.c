@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <arpa/inet.h>
+#include <libck.h>
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
@@ -21,7 +22,7 @@
 #define SOCKET_LISTEN_QUEUE 5 /* Extract from openair-cn (openair-cn/SCTP/sctp_primitives_server.c) */
 #define BUFFER_LEN 1024
 
-char *db_ip_address;
+int db_sock;
 
 int configure_sctp_socket(char * mme_ip_address)
 {
@@ -176,13 +177,14 @@ int main(int argc, char const *argv[])
 	}
 	core_initialize();
 
-	// setup the DB IP address
-	db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
-	memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
+	// connect to the DB
+	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
+	//memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
+	db_sock = db_connect((char *)argv[2], 0);
 
 	start_listener((char *)argv[1]);
 
-	core_free(db_ip_address);
+	db_disconnect(db_sock);
 
 	return 0;
 }

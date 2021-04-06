@@ -11,7 +11,7 @@
 #include "core_aes_cmac.h"
 
 // external reference to variable in the listener
-extern char* db_ip_address;
+extern int db_sock;
 
 // the following function was adapted from
 // nas_security_encode() in nextepc/src/mme/nas_security.h
@@ -325,7 +325,6 @@ status_t get_NAS_decode_security_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mm
     OCTET_STRING_t raw_mme_ue_id;
     s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
 
-    int sock = db_connect(db_ip_address, 0);
     int n;
 
     const int NUM_PULL_ITEMS = 3;
@@ -333,9 +332,8 @@ status_t get_NAS_decode_security_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mm
     core_free(raw_mme_ue_id.buf);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         INT_KEY, ENC_KEY, UE_NAS_SEQUENCE_NUMBER);
-    send_request(sock, buffer, n);
-    n = recv_response(sock, buffer, 1024);
-    db_disconnect(sock);
+    send_request(db_sock, buffer, n);
+    n = recv_response(db_sock, buffer, 1024);
 
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 
