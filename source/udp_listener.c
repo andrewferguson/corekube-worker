@@ -103,7 +103,7 @@ void start_listener(char * mme_ip_address)
 
 			pkbuf_free(responseBuffer);
 
-			d_assert(ret != -1, continue, "Failed to send SCTP message");
+			d_assert(ret != -1, continue, "Failed to send UDP message");
 			d_info("Send %d bytes over UDP", ret);
 		}
 
@@ -122,12 +122,12 @@ void start_listener(char * mme_ip_address)
 
 			pkbuf_free(responseBuffer);
 
-			d_assert(ret != -1, continue, "Failed to send SCTP message");
+			d_assert(ret != -1, continue, "Failed to send UDP message");
 			d_info("Send %d bytes over UDP", ret);
 		}
 	}
 
-	d_assert(n != -1,, "An SCTP error occured");
+	d_assert(n != -1,, "An UDP error occured");
 
 	/* Close the socket when done */
 	close(sock_udp);
