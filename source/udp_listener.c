@@ -75,8 +75,9 @@ void start_listener(char * mme_ip_address)
 		/* Wait to receive a message */
 		n = recvfrom(sock_udp, (char *)buffer, BUFFER_LEN, MSG_WAITALL, ( struct sockaddr *) &client_addr, &from_len); 
 		d_assert(n > 0, break, "No longer connected to eNB");
-		
-		d_print_hex(buffer, n);
+
+		if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO)
+			d_print_hex(buffer, n);
 
 		S1AP_handler_response_t response;
 
@@ -137,11 +138,15 @@ void start_listener(char * mme_ip_address)
 
 int main(int argc, char const *argv[])
 {
-	if(argc != 3) {
-		printf("RUN: ./corekube_udp_listener <WORKER_IP_ADDRESS> <DB_IP_ADDRESS>\n");
+	if(argc != 3 && argc != 4) {
+		printf("RUN: ./corekube_udp_listener <WORKER_IP_ADDRESS> <DB_IP_ADDRESS> [PRODUCTION=0]\n");
 		return 1;
 	}
 	core_initialize();
+
+	// in production, turn off info logs
+	if (argc == 4 && atoi(argv[3]))
+		d_log_set_level(D_MSG_TO_STDOUT, D_LOG_LEVEL_ERROR);
 
 	// setup the DB IP address
 	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));

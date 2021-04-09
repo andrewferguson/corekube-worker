@@ -123,8 +123,10 @@ void start_listener(char * mme_ip_address)
 	while ( (n = sctp_recvmsg(sock_enb, (void *)buffer, BUFFER_LEN, (struct sockaddr *)&addr, &from_len, &sinfo, &flags)) >= 0) {
 		d_assert(n > 0, break, "No longer connected to eNB");
 
-		d_info("Received with PPID: %d", ntohl(sinfo.sinfo_ppid));
-		d_print_hex(buffer, n);
+		if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO) {
+			d_info("Received with PPID: %d", ntohl(sinfo.sinfo_ppid));
+			d_print_hex(buffer, n);
+		}
 
 		//////////////////////////////////////////////////////////
 		S1AP_handler_response_t response;

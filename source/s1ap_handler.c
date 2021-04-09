@@ -97,8 +97,10 @@ status_t message_to_bytes(s1ap_message_t *message, pkbuf_t **out)
 status_t s1ap_message_handler(s1ap_message_t *message, S1AP_handler_response_t *response) {
     d_info("Handling S1AP message");
 
-    int s1ap_print = asn_fprint(stdout, &asn_DEF_S1AP_S1AP_PDU, message);
-    d_assert(s1ap_print == 0, return CORE_ERROR, "Failed to print S1AP message");
+    if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO) { // Turn this off for production
+        int s1ap_print = asn_fprint(stdout, &asn_DEF_S1AP_S1AP_PDU, message);
+        d_assert(s1ap_print == 0, return CORE_ERROR, "Failed to print S1AP message");
+    }
 
     // with a single exception (S1SetupResponse),
     // the SCTP stream ID should be 1

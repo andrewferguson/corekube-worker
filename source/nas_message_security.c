@@ -94,12 +94,7 @@ status_t nas_security_encode(nas_message_t *message, corekube_db_pulls_t *db_pul
             c_uint8_t mac[NAS_SECURITY_MAC_SIZE];
 
             // calculate NAS MAC(message authentication code)
-            d_info("Int key:");
-            d_print_hex(int_key, 16);
-            d_info("NAS DL count: %d, raw:", nas_dl_count);
             nas_mac_calculate(COREKUBE_INT_ALGORITHM, int_key, nas_dl_count, NAS_SECURITY_BEARER, NAS_SECURITY_DOWNLINK_DIRECTION, new, mac);
-            d_info("Calculated MAC:");
-            d_print_hex(mac, 4);
             memcpy(&h.message_authentication_code, mac, sizeof(mac));
         }
 
@@ -354,8 +349,6 @@ status_t get_NAS_decode_security_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mm
     d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
-    d_info("DB RAW");
-    d_print_hex(buffer, n);
 
     return CORE_OK;
 }
