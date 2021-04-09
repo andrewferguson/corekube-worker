@@ -71,8 +71,6 @@ typedef struct _s6a_message_t {
     s6a_ula_message_t       ula_message;
 } s6a_message_t;
 
-status_t get_s6a_subscription_information(s6a_message_t ** s6a_message);
-
 status_t get_default_s6a_subscription_data(s6a_subscription_data_t * subscription_data);
 
 #endif /* __S6A_MESSAGE_H__ */
