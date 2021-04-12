@@ -89,6 +89,12 @@ void start_listener(char * mme_ip_address)
 			continue;
 		}
 
+		client_addr.sin_port = htons(32566);
+		d_print_hex(&client_addr, sizeof(client_addr));
+		d_info("S_addr: %d, ", client_addr.sin_addr.s_addr);
+		d_info("S_port: %d, ", client_addr.sin_port);
+    
+
 		// handle the first response, if there is one
 		if (response.outcome == HAS_RESPONSE || response.outcome == DUAL_RESPONSE) {
 			pkbuf_t *responseBuffer = response.response;
