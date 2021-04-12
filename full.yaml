@@ -95,7 +95,12 @@ spec:
         ports:
         - containerPort: 7788
           protocol: TCP
-        command: ["./corekubeDB"]
+        command: ["./corekubeDB", "$(THIS_POD_IP)"]
+        env:
+        - name: THIS_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
 
 
 ---
