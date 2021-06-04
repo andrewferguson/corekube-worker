@@ -161,7 +161,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
 
         if (COREKUBE_INT_ALGORITHM == 0)
         {
-            d_warn("integrity algorithm is not defined");
+            d_error("integrity algorithm is not defined");
             return CORE_ERROR;
         }
 
@@ -199,7 +199,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
 
         if (memcmp(mac + 2, pkbuf->payload + 2, 2) != 0)
         {
-            d_warn("NAS MAC verification failed");
+            d_error("NAS MAC verification failed");
         }
 
         return CORE_OK;
@@ -264,7 +264,7 @@ status_t nas_security_decode(S1AP_NAS_PDU_t *nasPdu, corekube_db_pulls_t *db_pul
             memcpy(&mac32, mac, NAS_SECURITY_MAC_SIZE);
             if (h->message_authentication_code != mac32)
             {
-                d_warn("NAS MAC verification failed(0x%x != 0x%x)",
+                d_error("NAS MAC verification failed(0x%x != 0x%x)",
                         ntohl(h->message_authentication_code), ntohl(mac32));
             }
         }
