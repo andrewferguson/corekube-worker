@@ -10,7 +10,7 @@ CFLAGS = -c -Wall -g -DTHREAD_LOGS # -ansi -std=c99
 LIBFLAGS = $(LIB_BIN_DIRECTORY)*
 
 #LINK FLAGS 
-LINKFLAGS = -Wl,-rpath=$(LIB_BIN_DIRECTORY) -lsctp -lck
+LINKFLAGS = -Wl,-rpath=$(LIB_BIN_DIRECTORY) -lsctp -lck -lpthread
 
 #INCLUDE FLAGS
 INCLUDE_FLAGS = -I lib/core/include -I lib/ -I lib/s1ap/asn1c/ -I lib/nas -I lib/hss -I headers/

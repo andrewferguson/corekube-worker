@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <libck.h>
+#include <pthread.h>
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
@@ -52,6 +53,83 @@ int configure_udp_socket(char * mme_ip_address)
 	return sock_udp;
 }
 
+// TODO: move to separate header
+// or perhaps separate file (since
+// process_message() might be able
+// to be made SCTP / UDP independent?)
+typedef struct process_message_args {
+	int sock_udp;
+	socklen_t *from_len;
+	struct sockaddr_in *client_addr;
+	c_uint8_t *buffer;
+	int num_bytes_received;
+} process_message_args_t;
+
+void *process_message(void *raw_args) {
+	process_message_args_t *args = (process_message_args_t *) raw_args;
+
+	if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO)
+		d_print_hex(args->buffer, args->num_bytes_received);
+
+	S1AP_handler_response_t response;
+
+	status_t outcome = s1ap_handler_entrypoint((args->buffer)+4, (args->num_bytes_received)-4, &response);
+	d_assert(outcome == CORE_OK, return NULL, "Failed to handle S1AP message");
+
+	if (response.outcome == NO_RESPONSE) {
+		d_info("Finished handling NO_RESPONSE message");
+		return NULL;
+	}
+
+	args->client_addr->sin_port = htons(32566);
+	d_print_hex(&(args->client_addr), sizeof(args->client_addr));
+	d_info("S_addr: %d, ", args->client_addr->sin_addr.s_addr);
+	d_info("S_port: %d, ", args->client_addr->sin_port);
+
+
+	// handle the first response, if there is one
+	if (response.outcome == HAS_RESPONSE || response.outcome == DUAL_RESPONSE) {
+		pkbuf_t *responseBuffer = response.response;
+
+		uint8_t response_out[responseBuffer->len + 5];
+		memcpy(response_out, args->buffer, 4);
+		response_out[4] = response.sctpStreamID;
+		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
+		
+		int ret = sendto(args->sock_udp, (void *)response_out, responseBuffer->len + 5,
+			MSG_CONFIRM, (const struct sockaddr *) args->client_addr,
+			*(args->from_len));
+
+		pkbuf_free(responseBuffer);
+
+		d_assert(ret != -1, return NULL, "Failed to send UDP message");
+		d_info("Send %d bytes over UDP", ret);
+	}
+
+	// handle the (optional) second response
+	if (response.outcome == DUAL_RESPONSE) {
+		pkbuf_t *responseBuffer = response.response2;
+
+		uint8_t response_out[responseBuffer->len + 5];
+		memcpy(response_out, args->buffer, 4);
+		response_out[4] = response.sctpStreamID;
+		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
+		
+		int ret = sendto(args->sock_udp, (void *)response_out, responseBuffer->len + 5,
+			MSG_CONFIRM, (const struct sockaddr *) args->client_addr,
+			*(args->from_len));
+
+		pkbuf_free(responseBuffer);
+
+		d_assert(ret != -1, return NULL, "Failed to send UDP message");
+		d_info("Send %d bytes over UDP", ret);
+	}
+
+	d_info("Finished processing message");
+
+	return NULL;
+}
+
 
 void start_listener(char * mme_ip_address)
 {
@@ -76,62 +154,18 @@ void start_listener(char * mme_ip_address)
 		n = recvfrom(sock_udp, (char *)buffer, BUFFER_LEN, MSG_WAITALL, ( struct sockaddr *) &client_addr, &from_len); 
 		d_assert(n > 0, break, "No longer connected to eNB");
 
-		if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO)
-			d_print_hex(buffer, n);
+		process_message_args_t args;
+		args.buffer = buffer;
+		args.client_addr = &client_addr;
+		args.from_len = &from_len;
+		args.num_bytes_received = n;
+		args.sock_udp = sock_udp;
 
-		S1AP_handler_response_t response;
+		void *raw_args = (void *) &args;
 
-		status_t outcome = s1ap_handler_entrypoint(buffer+4, n-4, &response);
-		d_assert(outcome == CORE_OK, continue, "Failed to handle S1AP message");		
-
-		if (response.outcome == NO_RESPONSE) {
-			d_info("Finished handling NO_RESPONSE message");
-			continue;
-		}
-
-		client_addr.sin_port = htons(32566);
-		d_print_hex(&client_addr, sizeof(client_addr));
-		d_info("S_addr: %d, ", client_addr.sin_addr.s_addr);
-		d_info("S_port: %d, ", client_addr.sin_port);
-    
-
-		// handle the first response, if there is one
-		if (response.outcome == HAS_RESPONSE || response.outcome == DUAL_RESPONSE) {
-			pkbuf_t *responseBuffer = response.response;
-
-			uint8_t response_out[responseBuffer->len + 5];
-			memcpy(response_out, buffer, 4);
-			response_out[4] = response.sctpStreamID;
-			memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
-			
-			int ret = sendto(sock_udp, (void *)response_out, responseBuffer->len + 5,
-				MSG_CONFIRM, (const struct sockaddr *) &client_addr,
-				from_len);
-
-			pkbuf_free(responseBuffer);
-
-			d_assert(ret != -1, continue, "Failed to send UDP message");
-			d_info("Send %d bytes over UDP", ret);
-		}
-
-		// handle the (optional) second response
-		if (response.outcome == DUAL_RESPONSE) {
-			pkbuf_t *responseBuffer = response.response2;
-
-			uint8_t response_out[responseBuffer->len + 5];
-			memcpy(response_out, buffer, 4);
-			response_out[4] = response.sctpStreamID;
-			memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
-			
-			int ret = sendto(sock_udp, (void *)response_out, responseBuffer->len + 5,
-				MSG_CONFIRM, (const struct sockaddr *) &client_addr,
-				from_len);
-
-			pkbuf_free(responseBuffer);
-
-			d_assert(ret != -1, continue, "Failed to send UDP message");
-			d_info("Send %d bytes over UDP", ret);
-		}
+		pthread_t thread;
+		int thread_create = pthread_create(&thread, NULL, process_message, raw_args);
+		d_assert(thread_create == 0, continue, "Failed to create thread"); 
 	}
 
 	d_assert(n != -1,, "An UDP error occured");
