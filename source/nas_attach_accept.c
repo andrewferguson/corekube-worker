@@ -39,23 +39,18 @@ status_t emm_build_attach_accept(pkbuf_t **emmbuf, pkbuf_t *esmbuf, corekube_db_
     t3412_value->value = 9;
 
     tai0_list_t list0;
+    memset(&list0, 0, sizeof(tai0_list_t));
+    list0.tai[0].num = 1;
+    list0.tai[0].type = TAI0_TYPE;
     // set to mcc=208 (France), mnc=93 (Unknown)
     plmn_id_build(&list0.tai[0].plmn_id, 208, 93, 2); // TODO: fixed values may need to be derived
-    list0.tai[0].num = 1;
-    list0.tai[1].tac[0] = 1; // TODO: fixed values may need to be derived
+    list0.tai[0].tac[0] = 1; // TODO: fixed values may need to be derived
 
     tai2_list_t list2;
+    memset(&list2, 0, sizeof(tai2_list_t));
     list2.num = 0;
 
-    // TODO: this isn't working 100%, the TAC is set to zero
-    // regardless of it's actual value
     nas_tai_list_build(&attach_accept->tai_list, &list0, &list2);
-
-    // TODO: temporary fix to the above issue
-    memset(&attach_accept->tai_list, 0, sizeof(nas_tracking_area_identity_list_t));
-    attach_accept->tai_list.length = 6;
-    char tai_list[] = "2002f8390001";
-    CORE_HEX(tai_list, strlen(tai_list), &attach_accept->tai_list.buffer);
 
     attach_accept->esm_message_container.buffer = esmbuf->payload;
     attach_accept->esm_message_container.length = esmbuf->len;
