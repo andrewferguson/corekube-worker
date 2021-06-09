@@ -77,7 +77,9 @@ status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, 
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 
-    d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
+    d_assert(n == 17 * NUM_PULL_ITEMS,
+        d_print_hex(buffer, n); return CORE_ERROR,
+        "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
 

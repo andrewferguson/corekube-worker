@@ -81,7 +81,9 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     // free the temporary MME_UE_ID
     core_free(raw_mme_ue_id.buf);
 
-    d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
+    d_assert(n == 17 * NUM_PULL_ITEMS,
+        d_print_hex(buffer, n); return CORE_ERROR,
+        "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
 

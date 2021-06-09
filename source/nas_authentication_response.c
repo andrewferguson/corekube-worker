@@ -58,7 +58,9 @@ status_t get_nas_authentication_response_prerequisites_from_db(S1AP_MME_UE_S1AP_
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
 
-    d_assert(n == 17 * NUM_PULL_ITEMS, return CORE_ERROR, "Failed to extract values from DB");
+    d_assert(n == 17 * NUM_PULL_ITEMS,
+        d_print_hex(buffer, n); return CORE_ERROR,
+        "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
 
