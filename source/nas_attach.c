@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <pthread.h>
+
 #include "nas_attach.h"
 #include "nas_util.h"
 
@@ -20,8 +22,9 @@
 
 #include <libck.h>
 
-// external reference to variable in the listener
+// external reference to variables in the listener
 extern int db_sock;
+extern pthread_mutex_t db_sock_mutex;
 
 status_t nas_handle_attach_request(nas_message_t *nas_attach_message, S1AP_ENB_UE_S1AP_ID_t *enb_ue_id, S1AP_PLMNidentity_t *PLMNidentity, S1AP_MME_UE_S1AP_ID_t *mme_ue_id, pkbuf_t **nas_pkbuf) {
     d_info("Handling NAS Attach Request");
@@ -70,8 +73,11 @@ status_t get_attach_request_prerequisites_from_db(nas_mobile_identity_imsi_t *im
     n = push_items(buffer, IMSI, (uint8_t *)raw_imsi, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KEY, OPC, RAND, EPC_NAS_SEQUENCE_NUMBER, MME_UE_S1AP_ID);
+    
+    pthread_mutex_lock(&db_sock_mutex);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
+    pthread_mutex_unlock(&db_sock_mutex);
 
     d_assert(n == 17 * NUM_PULL_ITEMS,
         d_print_hex(buffer, n); return CORE_ERROR,
@@ -101,7 +107,10 @@ status_t save_attach_request_info_in_db(nas_mobile_identity_imsi_t * imsi, nas_a
         KASME_1, auth_vec->kasme,
         KASME_2, (auth_vec->kasme)+16);
     n = pull_items(buf, n, 0);
+
+    pthread_mutex_lock(&db_sock_mutex);
     send_request(db_sock, buf, n);
+    pthread_mutex_unlock(&db_sock_mutex);
 
     // don't forget to free the raw_enb_ue_id
     core_free(raw_enb_ue_id.buf);

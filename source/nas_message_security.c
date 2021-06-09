@@ -5,14 +5,17 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <pthread.h>
+
 #include "nas_message_security.h"
 
 #include "s1ap_conv.h"
 #include "core_aes_cmac.h"
 #include "nas_security_mode_command.h"
 
-// external reference to variable in the listener
+// external reference to variables in the listener
 extern int db_sock;
+extern pthread_mutex_t db_sock_mutex;
 
 // the following function was adapted from
 // nas_security_encode() in nextepc/src/mme/nas_security.h
@@ -343,8 +346,11 @@ status_t get_NAS_decode_security_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mm
     core_free(raw_mme_ue_id.buf);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KASME_1, KASME_2, UE_NAS_SEQUENCE_NUMBER);
+    
+    pthread_mutex_lock(&db_sock_mutex);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
+    pthread_mutex_unlock(&db_sock_mutex);
 
     d_assert(n == 17 * NUM_PULL_ITEMS,
         d_print_hex(buffer, n); return CORE_ERROR,

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <pthread.h>
+
 #include "core/include/core_lib.h"
 
 #include "nas_detach_request.h"
@@ -12,8 +14,9 @@
 #include "nas_detach_accept.h"
 #include "s1ap_conv.h"
 
-// external reference to variable in the listener
+// external reference to variables in the listener
 extern int db_sock;
+extern pthread_mutex_t db_sock_mutex;
 
 status_t nas_handle_detach_request(nas_message_t *nas_detach_message, S1AP_MME_UE_S1AP_ID_t *mme_ue_id, pkbuf_t **nas_pkbuf) {
     d_info("Handling NAS Detach Request");
@@ -74,8 +77,11 @@ status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, 
     const int NUM_PULL_ITEMS = 7;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         MME_UE_S1AP_ID, ENB_UE_S1AP_ID, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER, KASME_1, KASME_2);
+    
+    pthread_mutex_lock(&db_sock_mutex);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
+    pthread_mutex_unlock(&db_sock_mutex);
 
     d_assert(n == 17 * NUM_PULL_ITEMS,
         d_print_hex(buffer, n); return CORE_ERROR,

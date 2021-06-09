@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <pthread.h>
+
 #include "initialcontextsetuprequest.h"
 #include "nas_attach_accept.h"
 #include "nas_activate_default_bearer_context_request.h"
@@ -15,8 +17,9 @@
 #include "core/include/core_lib.h"
 #include "nas_security_mode_command.h"
 
-// external reference to variable in the listener
+// external reference to variables in the listener
 extern int db_sock;
+extern pthread_mutex_t db_sock_mutex;
 
 // the following function is adapted from 
 // nas_send_attach_accept() in the file 
@@ -75,8 +78,11 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         MME_UE_S1AP_ID, ENB_UE_S1AP_ID, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER_NO_INC, KASME_1, KASME_2, TMSI);
+    
+    pthread_mutex_lock(&db_sock_mutex);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
+    pthread_mutex_unlock(&db_sock_mutex);
 
     // free the temporary MME_UE_ID
     core_free(raw_mme_ue_id.buf);

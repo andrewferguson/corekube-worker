@@ -9,6 +9,7 @@
 #include <netinet/sctp.h>
 #include <arpa/inet.h>
 #include <libck.h>
+#include <pthread.h>
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
@@ -23,6 +24,11 @@
 #define BUFFER_LEN 1024
 
 int db_sock;
+// the SCTP listener is not multithreaded, however the
+// code locks and unlocks the mutex regardless of how many
+// threads are being run, and therefore the SCTP listener
+// must declare the mutex
+pthread_mutex_t db_sock_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int configure_sctp_socket(char * mme_ip_address)
 {

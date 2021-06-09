@@ -17,6 +17,7 @@
 #define BUFFER_LEN 1024
 
 int db_sock;
+pthread_mutex_t db_sock_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int configure_udp_socket(char * mme_ip_address)
 {
