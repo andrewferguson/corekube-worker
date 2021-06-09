@@ -59,7 +59,7 @@ int configure_udp_socket(char * mme_ip_address)
 // to be made SCTP / UDP independent?)
 typedef struct process_message_args {
 	int sock_udp;
-	socklen_t *from_len;
+	socklen_t from_len;
 	struct sockaddr_in *client_addr;
 	c_uint8_t *buffer;
 	int num_bytes_received;
@@ -68,12 +68,20 @@ typedef struct process_message_args {
 void *process_message(void *raw_args) {
 	process_message_args_t *args = (process_message_args_t *) raw_args;
 
+	// free the dynamically-allocated buffer as soon as possible
+	// since it takes up a relatively large amount of the limited
+	// amount of available dynamically-allocatable memory (1KB of 7MB)
+	c_uint8_t buffer[args->num_bytes_received];
+	memcpy(buffer, args->buffer, args->num_bytes_received);
+	core_free(args->buffer);
+
 	if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO)
-		d_print_hex(args->buffer, args->num_bytes_received);
+		d_print("New SCTP message received:");
+		d_print_hex(buffer, args->num_bytes_received);
 
 	S1AP_handler_response_t response;
 
-	status_t outcome = s1ap_handler_entrypoint((args->buffer)+4, (args->num_bytes_received)-4, &response);
+	status_t outcome = s1ap_handler_entrypoint(buffer+4, (args->num_bytes_received)-4, &response);
 	d_assert(outcome == CORE_OK, return NULL, "Failed to handle S1AP message");
 
 	if (response.outcome == NO_RESPONSE) {
@@ -82,23 +90,19 @@ void *process_message(void *raw_args) {
 	}
 
 	args->client_addr->sin_port = htons(32566);
-	d_print_hex(&(args->client_addr), sizeof(args->client_addr));
-	d_info("S_addr: %d, ", args->client_addr->sin_addr.s_addr);
-	d_info("S_port: %d, ", args->client_addr->sin_port);
-
 
 	// handle the first response, if there is one
 	if (response.outcome == HAS_RESPONSE || response.outcome == DUAL_RESPONSE) {
 		pkbuf_t *responseBuffer = response.response;
 
 		uint8_t response_out[responseBuffer->len + 5];
-		memcpy(response_out, args->buffer, 4);
+		memcpy(response_out, buffer, 4);
 		response_out[4] = response.sctpStreamID;
 		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
 		
 		int ret = sendto(args->sock_udp, (void *)response_out, responseBuffer->len + 5,
 			MSG_CONFIRM, (const struct sockaddr *) args->client_addr,
-			*(args->from_len));
+			args->from_len);
 
 		pkbuf_free(responseBuffer);
 
@@ -111,19 +115,23 @@ void *process_message(void *raw_args) {
 		pkbuf_t *responseBuffer = response.response2;
 
 		uint8_t response_out[responseBuffer->len + 5];
-		memcpy(response_out, args->buffer, 4);
+		memcpy(response_out, buffer, 4);
 		response_out[4] = response.sctpStreamID;
 		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
 		
 		int ret = sendto(args->sock_udp, (void *)response_out, responseBuffer->len + 5,
 			MSG_CONFIRM, (const struct sockaddr *) args->client_addr,
-			*(args->from_len));
+			args->from_len);
 
 		pkbuf_free(responseBuffer);
 
 		d_assert(ret != -1, return NULL, "Failed to send UDP message");
 		d_info("Send %d bytes over UDP", ret);
 	}
+
+	// free the dynamically-allocated structures
+	core_free(args->client_addr);
+	core_free(args);
 
 	d_info("Finished processing message");
 
@@ -136,11 +144,8 @@ void start_listener(char * mme_ip_address)
 	int sock_udp;
 	int n;
 	socklen_t from_len;
-	struct sockaddr_in client_addr;
-	uint8_t buffer[BUFFER_LEN];
 
 	/* Initialise socket structs */
-	memset(&client_addr, 0, sizeof(struct sockaddr_in));
 	from_len = (socklen_t)sizeof(struct sockaddr_in);
 
 	/* Configure the socket */
@@ -150,21 +155,25 @@ void start_listener(char * mme_ip_address)
 
 	while (1) {
 
+		// setup variables for receiving a message
+		process_message_args_t *args = core_calloc(1, sizeof(process_message_args_t));
+		struct sockaddr_in *client_addr = core_calloc(1, sizeof(struct sockaddr_in));
+		uint8_t *buffer = core_malloc(BUFFER_LEN);
+
 		/* Wait to receive a message */
-		n = recvfrom(sock_udp, (char *)buffer, BUFFER_LEN, MSG_WAITALL, ( struct sockaddr *) &client_addr, &from_len); 
+		n = recvfrom(sock_udp, (char *)buffer, BUFFER_LEN, MSG_WAITALL, ( struct sockaddr *) client_addr, &from_len); 
 		d_assert(n > 0, break, "No longer connected to eNB");
 
-		process_message_args_t args;
-		args.buffer = buffer;
-		args.client_addr = &client_addr;
-		args.from_len = &from_len;
-		args.num_bytes_received = n;
-		args.sock_udp = sock_udp;
-
-		void *raw_args = (void *) &args;
+		// setup the arguments to be passed
+		// to the multithreaded function
+		args->buffer = buffer;
+		args->client_addr = client_addr;
+		args->from_len = from_len;
+		args->num_bytes_received = n;
+		args->sock_udp = sock_udp;
 
 		pthread_t thread;
-		int thread_create = pthread_create(&thread, NULL, process_message, raw_args);
+		int thread_create = pthread_create(&thread, NULL, process_message, (void *) args);
 		d_assert(thread_create == 0, continue, "Failed to create thread"); 
 	}
 
