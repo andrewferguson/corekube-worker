@@ -85,10 +85,8 @@ void *process_message(void *raw_args) {
 	status_t outcome = s1ap_handler_entrypoint(buffer+4, (args->num_bytes_received)-4, &response);
 	d_assert(outcome == CORE_OK, return NULL, "Failed to handle S1AP message");
 
-	if (response.outcome == NO_RESPONSE) {
+	if (response.outcome == NO_RESPONSE)
 		d_info("Finished handling NO_RESPONSE message");
-		return NULL;
-	}
 
 	args->client_addr->sin_port = htons(32566);
 
