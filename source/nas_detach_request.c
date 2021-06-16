@@ -26,8 +26,6 @@ status_t nas_handle_detach_request(nas_message_t *nas_detach_message, S1AP_MME_U
     // verify the core can handle this type of detach request
     c_uint8_t detach_type = detach_request.detach_type.detach_type;
     d_assert(detach_type == NAS_DETACH_TYPE_FROM_UE_EPS_DETACH, return CORE_ERROR, "Unknown detach type %d, only NAS_DETACH_TYPE_FROM_UE_EPS_DETACH is supported", detach_type);
-    c_uint8_t switch_off = detach_request.detach_type.switch_off;
-    d_assert(switch_off == 0, return CORE_ERROR, "Core cannot handle detach request with switch_off=1");
 
     // get the identity of the detaching UE
     nas_eps_mobile_identity_t *mobile_identity = &detach_request.eps_mobile_identity;

@@ -65,6 +65,20 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
         case NAS_DETACH_REQUEST:
             ; // necessary to stop C complaining about labels and declarations
 
+            // check for the UE switch-off detach, where no Attach Accept
+            // message should be sent
+            c_uint8_t switch_off = nas_message.emm.detach_request_from_ue.detach_type.switch_off;
+            if (switch_off) {
+                d_info("Detach with UE switch off");
+
+                status_t context_release = s1ap_build_ue_context_release_command(*mme_ue_id, *enb_ue_id, response->response);
+                d_assert(context_release == CORE_OK, return CORE_ERROR, "Failed to build UEInitialContextReleaseCommand");
+
+                response->outcome = HAS_RESPONSE;
+
+                return CORE_OK;
+            }
+
             // handle the detach request
             status_t nas_handle_detach = nas_handle_detach_request(&nas_message, NULL, &nas_pkbuf);
             d_assert(nas_handle_detach == CORE_OK, return CORE_ERROR, "Failed to handle NAS detach");
