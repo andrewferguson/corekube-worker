@@ -173,7 +173,7 @@ void start_listener(char * mme_ip_address)
 
 		pthread_t thread;
 		int thread_create = pthread_create(&thread, NULL, process_message, (void *) args);
-		d_assert(thread_create == 0, continue, "Failed to create thread"); 
+		d_assert(thread_create == 0, continue, "Failed to create thread,, error number: %d", thread_create);
 	}
 
 	d_assert(n != -1,, "An UDP error occured");
