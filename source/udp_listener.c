@@ -163,6 +163,9 @@ void start_listener(char * mme_ip_address)
 		n = recvfrom(sock_udp, (char *)buffer, BUFFER_LEN, MSG_WAITALL, ( struct sockaddr *) client_addr, &from_len); 
 		d_assert(n > 0, break, "No longer connected to eNB");
 
+		d_info("Printing memory usage");
+		pkbuf_show();
+
 		// setup the arguments to be passed
 		// to the multithreaded function
 		args->buffer = buffer;
