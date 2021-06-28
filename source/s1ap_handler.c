@@ -98,7 +98,9 @@ status_t s1ap_message_handler(s1ap_message_t *message, S1AP_handler_response_t *
     d_info("Handling S1AP message");
 
     if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO) { // Turn this off for production
+        flockfile(stdout);
         int s1ap_print = asn_fprint(stdout, &asn_DEF_S1AP_S1AP_PDU, message);
+        funlockfile(stdout);
         d_assert(s1ap_print == 0, return CORE_ERROR, "Failed to print S1AP message");
     }
 
