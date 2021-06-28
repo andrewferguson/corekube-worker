@@ -59,10 +59,13 @@ status_t get_nas_authentication_response_prerequisites_from_db(S1AP_MME_UE_S1AP_
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         AUTH_RES, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER);
     
+    d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
     pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
 
     d_assert(n == 17 * NUM_PULL_ITEMS,
         d_print_hex(buffer, n); return CORE_ERROR,

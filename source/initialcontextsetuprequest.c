@@ -75,10 +75,13 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         MME_UE_S1AP_ID, ENB_UE_S1AP_ID, KASME_1, KASME_2, EPC_NAS_SEQUENCE_NUMBER, UE_NAS_SEQUENCE_NUMBER_NO_INC, KASME_1, KASME_2, TMSI);
     
+    d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
     pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
 
     // free the temporary MME_UE_ID
     core_free(raw_mme_ue_id.buf);
