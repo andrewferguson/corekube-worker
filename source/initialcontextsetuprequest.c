@@ -48,10 +48,6 @@ status_t nas_send_attach_accept(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, S1AP_handler_r
     d_assert(rv == CORE_OK, pkbuf_free(emmbuf); return CORE_ERROR, "s1ap build error");
 
     d_info("finished building attach accept");
-    if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO) { //Turn off for production
-        int s1ap_print = asn_fprint(stdout, &asn_DEF_S1AP_S1AP_PDU, response->response);
-        d_assert(s1ap_print == 0, return CORE_ERROR, "Failed to print S1AP message");
-    }
 
     response->outcome = HAS_RESPONSE;
     return CORE_OK;
