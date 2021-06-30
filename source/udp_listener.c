@@ -77,7 +77,7 @@ void *process_message(void *raw_args) {
 	core_free(args->buffer);
 
 	if (d_log_get_level(D_MSG_TO_STDOUT) >= D_LOG_LEVEL_INFO)
-		d_print("New SCTP message received:");
+		d_info("New SCTP message received.");
 		d_print_hex(buffer, args->num_bytes_received);
 
 	S1AP_handler_response_t response;
