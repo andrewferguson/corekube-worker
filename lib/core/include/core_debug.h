@@ -74,6 +74,7 @@ CORE_DECLARE(int) d_msg(int tp, int lv, c_time_t t, char *fn, int ln,
  * print out the message.
  */
 #define d_print_hex(__buf, __buflen) do { \
+    flockfile(stdout); \
     int __i = 0, __l, __off = 0; \
     char __hex[__MAX_HEX_BUF*2+__MAX_HEX_BUF/4+__MAX_HEX_BUF/32+4], *__p; \
     d_print("%d bytes hex:\r\n", __buflen); \
@@ -92,6 +93,7 @@ CORE_DECLARE(int) d_msg(int tp, int lv, c_time_t t, char *fn, int ln,
         d_print(__hex); \
     } \
     if (__i & 0x1f) d_print("\r\n"); \
+    funlockfile(stdout); \
 } while (0)
 
 /**
