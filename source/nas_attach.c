@@ -74,10 +74,13 @@ status_t get_attach_request_prerequisites_from_db(nas_mobile_identity_imsi_t *im
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KEY, OPC, RAND, EPC_NAS_SEQUENCE_NUMBER, MME_UE_S1AP_ID);
     
+    d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
     pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
 
     d_assert(n == 17 * NUM_PULL_ITEMS,
         d_print_hex(buffer, n); return CORE_ERROR,
@@ -108,12 +111,9 @@ status_t save_attach_request_info_in_db(nas_mobile_identity_imsi_t * imsi, nas_a
         KASME_2, (auth_vec->kasme)+16);
     n = pull_items(buf, n, 0);
 
-    d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
-    d_info("DB access, mutex accessed");
     send_request(db_sock, buf, n);
     pthread_mutex_unlock(&db_sock_mutex);
-    d_info("DB access, received response");
 
     // don't forget to free the raw_enb_ue_id
     core_free(raw_enb_ue_id.buf);
