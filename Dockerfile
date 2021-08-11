@@ -11,12 +11,6 @@ RUN apt-get -y install git libsctp-dev build-essential
 # Extra dependencies for testing / debugging
 RUN apt-get -y install python3 curl wget netcat screen libsctp1 lksctp-tools python3-pip nano
 
-# Install j0lama's GarbageCollector
-RUN git clone https://github.com/j0lama/GarbageCollector.git
-WORKDIR GarbageCollector/
-RUN make
-RUN make install
-
 WORKDIR ../
 
 # Install libck
