@@ -13,6 +13,7 @@
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
+#include "core/include/core_signal.h"
 
 #define MME_LISTEN_PORT 36412
 #define SCTP_OUT_STREAMS 32
@@ -184,6 +185,7 @@ int main(int argc, char const *argv[])
 		return 1;
 	}
 	core_initialize();
+	signal_unblock(2);
 
 	// connect to the DB
 	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));

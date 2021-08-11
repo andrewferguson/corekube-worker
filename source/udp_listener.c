@@ -12,6 +12,7 @@
 
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
+#include "core/include/core_signal.h"
 
 #define MME_LISTEN_PORT 5566
 #define BUFFER_LEN 1024
@@ -200,6 +201,7 @@ int main(int argc, char const *argv[])
 		return 1;
 	}
 	core_initialize();
+	signal_unblock(2);
 
 	// in production, turn off info logs
 	if (argc == 4 && atoi(argv[3]))
