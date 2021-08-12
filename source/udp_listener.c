@@ -202,6 +202,7 @@ int main(int argc, char const *argv[])
 	}
 	core_initialize();
 	signal_unblock(2);
+        setvbuf(stdout, NULL, _IONBF, 0);
 
 	// in production, turn off info logs
 	if (argc == 4 && atoi(argv[3]))
