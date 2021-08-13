@@ -21,6 +21,9 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
     S1AP_ENB_UE_S1AP_ID_t *enb_ue_id;
     UplinkNASTransport_extract_ENB_UE_ID(uplinkNASTransport, &enb_ue_id);
 
+    // logging
+    d_info("ENB_S1AP_UE_ID: %d and MME_S1AP_UE_ID: %d", *enb_ue_id, *mme_ue_id);
+
     nas_message_t nas_message;
     status_t decode_nas = decode_uplinknastransport_nas(uplinkNASTransport, mme_ue_id, &nas_message);
     d_assert(decode_nas == CORE_OK, return CORE_ERROR, "Failed to decode NAS authentication response");

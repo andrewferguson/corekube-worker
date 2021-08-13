@@ -36,6 +36,9 @@ status_t handle_initialuemessage(s1ap_message_t *received_message, S1AP_handler_
             status_t nas_handle_attach = nas_handle_attach_request(&nas_message, enb_ue_id, PLMNidentity, &mme_ue_id, &nas_pkbuf);
             d_assert(nas_handle_attach == CORE_OK, return CORE_ERROR, "Failed to handle NAS attach");
 
+            // logging
+            d_info("ENB_S1AP_UE_ID: %d and MME_S1AP_UE_ID: %d", *enb_ue_id, mme_ue_id);
+
             // mark this message as having a response
             response->outcome = HAS_RESPONSE;
 
