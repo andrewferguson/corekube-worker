@@ -77,15 +77,8 @@ status_t get_attach_request_prerequisites_from_db(nas_mobile_identity_imsi_t *im
     d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
     d_info("DB access, mutex accessed");
-    d_info("DB REQUEST:");
-    d_print_hex(buffer, n);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
-    d_info("DB RESPONSE:");
-    d_print_hex(buffer, n);
-    d_assert(n == 17 * NUM_PULL_ITEMS,
-        d_print_hex(buffer, n); exit(1),
-        "Failed to extract values from DB");
     pthread_mutex_unlock(&db_sock_mutex);
     d_info("DB access, received response");
 
@@ -119,10 +112,7 @@ status_t save_attach_request_info_in_db(nas_mobile_identity_imsi_t * imsi, nas_a
     n = pull_items(buf, n, 0);
 
     pthread_mutex_lock(&db_sock_mutex);
-    d_info("DB REQUEST:");
-    d_print_hex(buf, n);
     send_request(db_sock, buf, n);
-    d_info("NO DB RESPONSE");
     pthread_mutex_unlock(&db_sock_mutex);
 
     // don't forget to free the raw_enb_ue_id

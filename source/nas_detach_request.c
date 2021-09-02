@@ -79,15 +79,8 @@ status_t detach_request_fetch_state(nas_eps_mobile_identity_t *mobile_identity, 
     d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
     d_info("DB access, mutex accessed");
-    d_info("DB REQUEST:");
-    d_print_hex(buffer, n);
     send_request(db_sock, buffer, n);
     n = recv_response(db_sock, buffer, 1024);
-    d_info("DB RESPONSE:");
-    d_print_hex(buffer, n);
-    d_assert(n == 17 * NUM_PULL_ITEMS,
-        d_print_hex(buffer, n); exit(1),
-        "Failed to extract values from DB");
     pthread_mutex_unlock(&db_sock_mutex);
     d_info("DB access, received response");
 
