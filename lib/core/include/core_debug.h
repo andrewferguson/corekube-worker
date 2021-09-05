@@ -163,6 +163,7 @@ CORE_DECLARE(int) d_msg(int tp, int lv, c_time_t t, char *fn, int ln,
     if (!(cond)) { \
         d_msg(D_MSG_TYPE_ASSERT, 0, time_now(), __FILE__, __LINE__, \
             "!("#cond"). "fmt, ## __VA_ARGS__); \
+        exit(1); \
         expr; \
     }
 
