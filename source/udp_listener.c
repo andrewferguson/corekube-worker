@@ -228,6 +228,7 @@ int main(int argc, char const *argv[])
 	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
 	//memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
 	db_sock = db_connect((char *)argv[2], 0);
+	d_assert(db_sock != -1,, "Failed to connect to DB");
 
 	start_listener((char *)argv[1], threading);
 
