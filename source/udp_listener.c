@@ -140,7 +140,7 @@ void *process_message(void *raw_args) {
 }
 
 
-void start_listener(char * mme_ip_address)
+void start_listener(char * mme_ip_address, int threading)
 {
 	int sock_udp;
 	int n;
@@ -186,9 +186,14 @@ void start_listener(char * mme_ip_address)
 		args->num_bytes_received = n;
 		args->sock_udp = sock_udp;
 
-		pthread_t thread;
-		int thread_create = pthread_create(&thread, &thread_attr, process_message, (void *) args);
-		d_assert(thread_create == 0, continue, "Failed to create thread,, error number: %d", thread_create);
+		if (threading) {
+			pthread_t thread;
+			int thread_create = pthread_create(&thread, &thread_attr, process_message, (void *) args);
+			d_assert(thread_create == 0, continue, "Failed to create thread,, error number: %d", thread_create);
+		}
+		else {
+			process_message((void *) args);
+		}
 	}
 
 	d_assert(n != -1,, "An UDP error occured");
@@ -201,8 +206,8 @@ void start_listener(char * mme_ip_address)
 
 int main(int argc, char const *argv[])
 {
-	if(argc != 3 && argc != 4) {
-		printf("RUN: ./corekube_udp_listener <WORKER_IP_ADDRESS> <DB_IP_ADDRESS> [PRODUCTION=0]\n");
+	if(argc <= 3 || argc >= 6) {
+		printf("RUN: ./corekube_udp_listener <WORKER_IP_ADDRESS> <DB_IP_ADDRESS> [PRODUCTION=0] [THREADING=1]\n");
 		return 1;
 	}
 	core_initialize();
@@ -210,15 +215,21 @@ int main(int argc, char const *argv[])
         setvbuf(stdout, NULL, _IONBF, 0);
 
 	// in production, turn off info logs
-	if (argc == 4 && atoi(argv[3]))
+	if (argc >= 4 && atoi(argv[3]))
 		d_log_set_level(D_MSG_TO_STDOUT, D_LOG_LEVEL_ERROR);
+
+	// check to see if we should have multi-threading
+	int threading = 1;
+	if (argc >= 5 && ! atoi(argv[4]))
+		threading = 0;
+	d_info("Threading: %d", threading);
 
 	// setup the DB IP address
 	//db_ip_address = (char*) core_calloc(strlen((char *)argv[2]), sizeof(char));
 	//memcpy(db_ip_address, (char *)argv[2], strlen((char *)argv[2]));
 	db_sock = db_connect((char *)argv[2], 0);
 
-	start_listener((char *)argv[1]);
+	start_listener((char *)argv[1], threading);
 
 	db_disconnect(db_sock);
 
