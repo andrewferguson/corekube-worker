@@ -52,6 +52,7 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
         
         case NAS_AUTHENTICATION_FAILURE:
             ; // necessary to stop C complaining about labels and declarations
+            d_info("Handling NAS Authentication Failure");
 
             // get the message in questio
             nas_authentication_failure_t auth_failure = nas_message.emm.authentication_failure;
@@ -62,6 +63,8 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
             // get the SQN xor AK
             uint8_t sqn_xor_ak[6];
             memcpy(sqn_xor_ak, auth_failure.authentication_failure_parameter.auts, 6);
+            d_info("Received SQN xor AK:");
+            d_print_hex(sqn_xor_ak, 6);
 
             // get the PLMNidentity
             S1AP_PLMNidentity_t *PLMNidentity;
@@ -90,8 +93,17 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
 
             extract_db_values(buffer, n, &db_pulls);
 
+            d_info("Fetched K:");
+            d_print_hex(db_pulls.key, 16);
+            d_info("Fetched OPc:");
+            d_print_hex(db_pulls.opc, 16);
+            d_info("Fetched RAND:");
+            d_print_hex(db_pulls.rand, 16);
+
             // recalculating the old authentication parameters
             c_uint8_t old_sqn[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            d_info("Old SQN is:");
+            d_print_hex(old_sqn, 6);
             nas_authentication_vector_t auth_vec;
             d_assert(PLMNidentity->size == 3, return CORE_ERROR, "PLMN identity not of size 3");
             status_t auth_generate = generate_authentication_vector(
@@ -108,11 +120,15 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
             memcpy(ak, auth_vec.autn, 6);
             for (int i = 0; i < 6; i++)
                 ak[i] = ak[i] ^ old_sqn[i];
+            d_info("Calculated old AK:");
+            d_print_hex(ak, 6);
 
             // determine the correct SQN
             c_uint8_t new_sqn[6];
             for (int i = 0; i < 6; i++)
                 new_sqn[i] = sqn_xor_ak[i] ^ ak[i];
+            d_info("Calculated new SQN:");
+            d_print_hex(new_sqn, 6);
 
             // recalculate the authentication parameters with the correct SQN
             nas_authentication_vector_t new_auth_vec;
