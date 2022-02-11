@@ -125,6 +125,14 @@ void runMessage(char * ip_address, int message_number) {
         "20170010200002000000020003000800"
         "03400003";
 
+    char * AuthenticationFailure =
+        "0f0a0c0e"
+        "000d403d000005000000020001000800"
+        "020001001a001413075c15300edc1863"
+        "9ef6c751e7768e819dac120064400800"
+        "02f8390019b010004340060002f83900"
+        "02";
+
 
     switch (message_number) {
         case 1:
@@ -153,6 +161,9 @@ void runMessage(char * ip_address, int message_number) {
             break;
         case 9:
             send_message(ip_address, UEContextReleaseComplete, 0);
+            break;
+        case 10:
+            send_message(ip_address, AuthenticationFailure, 1);
             break;
         default:
             d_info("Unknown message number %d", message_number);

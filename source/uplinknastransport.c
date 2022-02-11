@@ -10,6 +10,13 @@
 #include "ue_initial_context_release_command.h"
 #include "nas_attach_complete.h"
 #include "nas_message_security.h" //TODO - included while testing, make sure it is actually needed when commiting final version
+#include "nas_authentication_request.h"
+#include "nas_attach.h"
+#include <libck.h>
+#include <pthread.h>
+
+extern int db_sock;
+extern pthread_mutex_t db_sock_mutex;
 
 status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handler_response_t *response) {
     d_info("Handling UplinkNASTransport");
@@ -42,6 +49,93 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
             response->outcome = HAS_RESPONSE;
 
             break;
+        
+        case NAS_AUTHENTICATION_FAILURE:
+            ; // necessary to stop C complaining about labels and declarations
+
+            // get the message in questio
+            nas_authentication_failure_t auth_failure = nas_message.emm.authentication_failure;
+
+            // check it is a synch failure
+            d_assert(auth_failure.emm_cause == EMM_CAUSE_SYNCH_FAILURE, return CORE_ERROR, "Only authentication failure of type synch error is handled");
+
+            // get the SQN xor AK
+            uint8_t sqn_xor_ak[6];
+            memcpy(sqn_xor_ak, auth_failure.authentication_failure_parameter.auts, 6);
+
+            // get the PLMNidentity
+            S1AP_PLMNidentity_t *PLMNidentity;
+            UplinkNASTransport_extract_PLMNidentity(uplinkNASTransport, &PLMNidentity);
+
+            // fetch the K, OPc, and RAND from the DB
+            OCTET_STRING_t raw_mme_ue_id;
+            s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
+            c_uint8_t buffer[1024];
+            int n;
+            n = push_items(buffer, MME_UE_S1AP_ID, raw_mme_ue_id.buf, 0);
+            n = pull_items(buffer, n, 3, KEY, OPC, RAND);
+
+            corekube_db_pulls_t db_pulls;
+            d_info("DB access, waiting for mutex");
+            pthread_mutex_lock(&db_sock_mutex);
+            d_info("DB access, mutex accessed");
+            send_request(db_sock, buffer, n);
+            n = recv_response(db_sock, buffer, 1024);
+            pthread_mutex_unlock(&db_sock_mutex);
+            d_info("DB access, received response");
+
+            d_assert(n == 17 * 3,
+                d_print_hex(buffer, n); return CORE_ERROR,
+                "Failed to extract values from DB");
+
+            extract_db_values(buffer, n, &db_pulls);
+
+            // recalculating the old authentication parameters
+            c_uint8_t old_sqn[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            nas_authentication_vector_t auth_vec;
+            d_assert(PLMNidentity->size == 3, return CORE_ERROR, "PLMN identity not of size 3");
+            status_t auth_generate = generate_authentication_vector(
+                db_pulls.key,
+                db_pulls.opc,
+                db_pulls.rand,
+                old_sqn,
+                PLMNidentity->buf,
+                &auth_vec);
+            d_assert(auth_generate == CORE_OK, return CORE_ERROR, "Failed to generate authentication vector");
+
+            // extract the AK from the authentication parameters
+            c_uint8_t ak[6];
+            memcpy(ak, auth_vec.autn, 6);
+            for (int i = 0; i < 6; i++)
+                ak[i] = ak[i] ^ old_sqn[i];
+
+            // determine the correct SQN
+            c_uint8_t new_sqn[6];
+            for (int i = 0; i < 6; i++)
+                new_sqn[i] = sqn_xor_ak[i] ^ ak[i];
+
+            // recalculate the authentication parameters with the correct SQN
+            nas_authentication_vector_t new_auth_vec;
+            status_t new_auth_generate = generate_authentication_vector(
+                db_pulls.key,
+                db_pulls.opc,
+                db_pulls.rand,
+                new_sqn,
+                PLMNidentity->buf,
+                &new_auth_vec);
+            d_assert(new_auth_generate == CORE_OK, return CORE_ERROR, "Failed to generate authentication vector");
+
+            // send out a new authentication request with the new auth vectors
+            status_t get_nas_auth_req = generate_nas_authentication_request(new_auth_vec.rand, new_auth_vec.autn, &nas_pkbuf);
+            d_assert(get_nas_auth_req == CORE_OK, return CORE_ERROR, "Failed to generate NAS authentication request");
+
+            // TODO: save in the DB
+
+            // mark this message as having a response
+            response->outcome = HAS_RESPONSE;
+
+            break;
+
 
         case NAS_SECURITY_MODE_COMPLETE:
             // TODO: only for testing purposes - send back a sample attach accept
@@ -141,6 +235,18 @@ status_t UplinkNASTransport_extract_ENB_UE_ID(S1AP_UplinkNASTransport_t *uplinkN
     d_assert(get_ie == CORE_OK, return CORE_ERROR, "Failed to get ENB_UE_ID IE from UplinkNASTransport");
 
     *ENB_UE_ID = &ENB_UE_ID_IE->value.choice.ENB_UE_S1AP_ID;
+
+    return CORE_OK;
+}
+
+status_t UplinkNASTransport_extract_PLMNidentity(S1AP_UplinkNASTransport_t *uplinkNASTransport, S1AP_PLMNidentity_t **PLMNidentity) {
+    d_info("Extracting PLMN identity from UplinkNASTransport");
+
+    S1AP_UplinkNASTransport_IEs_t *TAI_IE;
+    status_t get_ie = get_uplinkNASTransport_IE(uplinkNASTransport, S1AP_UplinkNASTransport_IEs__value_PR_TAI, &TAI_IE);
+    d_assert(get_ie == CORE_OK, return CORE_ERROR, "Failed to get TAI IE from UplinkNASTransport");
+
+    *PLMNidentity = &TAI_IE->value.choice.TAI.pLMNidentity;
 
     return CORE_OK;
 }
