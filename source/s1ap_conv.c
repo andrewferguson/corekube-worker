@@ -41,6 +41,31 @@ void s1ap_buffer_to_OCTET_STRING(
     memcpy(tbcd_string->buf, buf, size);
 }
 
+void s1ap_ENB_ID_to_uint32(S1AP_ENB_ID_t *eNB_ID, c_uint32_t *uint32)
+{
+    d_assert(uint32, return, "Null param");
+    d_assert(eNB_ID, return, "Null param");
+
+    if (eNB_ID->present == S1AP_ENB_ID_PR_homeENB_ID)
+    {
+        c_uint8_t *buf = eNB_ID->choice.homeENB_ID.buf;
+        d_assert(buf, return, "Null param");
+        *uint32 = (buf[0] << 20) + (buf[1] << 12) + (buf[2] << 4) +
+            ((buf[3] & 0xf0) >> 4);
+
+    }
+    else if (eNB_ID->present == S1AP_ENB_ID_PR_macroENB_ID)
+    {
+        c_uint8_t *buf = eNB_ID->choice.macroENB_ID.buf;
+        d_assert(buf, return, "Null param");
+        *uint32 = (buf[0] << 12) + (buf[1] << 4) + ((buf[2] & 0xf0) >> 4);
+    }
+    else
+    {
+        d_assert(0, return, "Invalid param");
+    }
+}
+
 int array_to_int(uint8_t * buffer)
 {
 	return (int)((buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3]);
