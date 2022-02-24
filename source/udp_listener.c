@@ -13,6 +13,7 @@
 #include "s1ap_handler.h"
 #include "core/include/core_general.h"
 #include "core/include/core_signal.h"
+#include "s1ap_conv.h"
 
 #define MME_LISTEN_PORT 5566
 #define BUFFER_LEN 1024
@@ -83,6 +84,7 @@ void *process_message(void *raw_args) {
 	}
 
 	S1AP_handler_response_t response;
+	response.enbSocket = array_to_int(buffer); // first 4 bytes are socket
 
 	status_t outcome = s1ap_handler_entrypoint(buffer+4, (args->num_bytes_received)-4, &response);
 	d_assert(outcome == CORE_OK, return NULL, "Failed to handle S1AP message");
@@ -92,12 +94,16 @@ void *process_message(void *raw_args) {
 
 	args->client_addr->sin_port = htons(32566);
 
+	// extract the eNB socket
+	OCTET_STRING_t rawEnbSocket;
+	s1ap_uint32_to_OCTET_STRING(response.enbSocket, &rawEnbSocket);
+
 	// handle the first response, if there is one
 	if (response.outcome == HAS_RESPONSE || response.outcome == DUAL_RESPONSE) {
 		pkbuf_t *responseBuffer = response.response;
 
 		uint8_t response_out[responseBuffer->len + 5];
-		memcpy(response_out, buffer, 4);
+		memcpy(response_out, rawEnbSocket.buf, 4);
 		response_out[4] = response.sctpStreamID;
 		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
 		
@@ -116,7 +122,7 @@ void *process_message(void *raw_args) {
 		pkbuf_t *responseBuffer = response.response2;
 
 		uint8_t response_out[responseBuffer->len + 5];
-		memcpy(response_out, buffer, 4);
+		memcpy(response_out, rawEnbSocket.buf, 4);
 		response_out[4] = response.sctpStreamID;
 		memcpy(response_out+5, responseBuffer->payload, responseBuffer->len);
 		
@@ -133,6 +139,7 @@ void *process_message(void *raw_args) {
 	// free the dynamically-allocated structures
 	core_free(args->client_addr);
 	core_free(args);
+	core_free(rawEnbSocket.buf);
 
 	d_info("Finished processing message");
 

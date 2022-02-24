@@ -22,6 +22,7 @@
 #include "s1setuprequest.h"
 #include "initialuemessage.h"
 #include "uplinknastransport.h"
+#include "handoverrequired.h"
 
 #include "core/include/3gpp_types.h"
 
@@ -136,6 +137,8 @@ status_t s1ap_initiatingMessage_handler(s1ap_message_t *initiatingMessage, S1AP_
             d_info("Nothing to handle, no response to return");
             response->outcome = NO_RESPONSE;
             return CORE_OK;
+        case S1AP_InitiatingMessage__value_PR_HandoverRequired:
+            return handle_handoverrequired(initiatingMessage, response);
         default:
             response->outcome = NO_RESPONSE;
             return CORE_ERROR;

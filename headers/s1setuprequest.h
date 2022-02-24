@@ -9,4 +9,8 @@ status_t handle_s1setuprequest(s1ap_message_t *received_message, S1AP_handler_re
 
 status_t getPLMNidentity(s1ap_message_t *received_message, S1AP_PLMNidentity_t **PLMNidentity);
 
+status_t get_ENB_ID(s1ap_message_t * received_message, c_uint32_t *enb_id);
+
+status_t save_enb_socket_in_db(c_uint32_t enb_id, c_uint32_t enb_sock);
+
 #endif /* __S1AP_HANDLER_S1SETUPREQUEST_H__ */
