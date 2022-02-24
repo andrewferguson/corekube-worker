@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include "core/include/core_lib.h"
 #include "nas_security_mode_command.h"
+#include "handoverrequired.h"
 
 // external reference to variables in the listener
 extern int db_sock;
@@ -281,6 +282,7 @@ status_t s1ap_build_initial_context_setup_request(
 
     c_uint8_t kenb[SHA256_DIGEST_SIZE];
     c_uint8_t kasme[SHA256_DIGEST_SIZE];
+    c_uint8_t knh[SHA256_DIGEST_SIZE];
 
     // kasme is stored in the DB as two 16-byte values, kasme1 and kasme2
     memcpy(kasme, db_pulls->kasme1, SHA256_DIGEST_SIZE/2);
@@ -294,7 +296,36 @@ status_t s1ap_build_initial_context_setup_request(
     // calculate the Kenb from Kasme
     kdf_enb(kasme, nas_ul_count, kenb);
 
+    // calculate the Knh from Kasme and Kenb
+    mme_kdf_nh(kasme, kenb, knh);
+
+    // store the knh in the DB
+    status_t db_store = store_knh_in_db(*MME_UE_S1AP_ID, knh);
+    d_assert(db_store == CORE_OK, return CORE_ERROR, "Failed to store Knh in DB");
+
     memcpy(SecurityKey->buf, kenb, SecurityKey->size);
+
+    return CORE_OK;
+}
+
+status_t store_knh_in_db(S1AP_MME_UE_S1AP_ID_t mme_ue_s1ap_id, c_uint8_t * knh) {
+    int n;
+    c_uint8_t buffer[1024];
+
+    // convert the MME ID to a buffer
+    OCTET_STRING_t raw_mme_us_s1ap_id;
+    s1ap_uint32_to_OCTET_STRING(mme_ue_s1ap_id, &raw_mme_us_s1ap_id);
+
+    // save the new eNB into the DB
+    n = push_items(buffer, MME_UE_S1AP_ID, raw_mme_us_s1ap_id.buf, 2, KNH_1, knh, KNH_2, knh+16);
+    n = pull_items(buffer, n, 0);
+
+    d_info("DB access, waiting for mutex");
+    pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
+    send_request(db_sock, buffer, n);
+    pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
 
     return CORE_OK;
 }

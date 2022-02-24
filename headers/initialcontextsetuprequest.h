@@ -11,5 +11,7 @@ status_t attach_accept_fetch_state(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *
 
 status_t s1ap_build_initial_context_setup_request(pkbuf_t *emmbuf, corekube_db_pulls_t *db_pulls, s1ap_message_t *pdu);
 
+status_t store_knh_in_db(S1AP_MME_UE_S1AP_ID_t mme_ue_s1ap_id, c_uint8_t * knh);
+
 
 #endif /* __S1AP_HANDLER_INITIAL_CONTEXT_SETUP_REQUEST_H__ */
