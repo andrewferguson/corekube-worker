@@ -7,7 +7,7 @@
 #include "core/include/core_sha2.h"
 
 #define COREKUBE_DEFAULT_QCI 9
-#define COREKUBE_DEFAULT_EBI 4
+#define COREKUBE_DEFAULT_EBI 5
 
 #define COREKUBE_DEFAULT_ARP_PRIORITY_LEVEL 1
 #define COREKUBE_DEFAULT_ARP_PRE_EMPTION_CAPABILITY 0 // shall-not-trigger-pre-emption
