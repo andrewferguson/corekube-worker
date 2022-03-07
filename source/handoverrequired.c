@@ -133,7 +133,7 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
     core_free(raw_mme_ue_id.buf);
 
-    const int NUM_PULL_ITEMS = 7;
+    const int NUM_PULL_ITEMS = 8;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KNH_1, KNH_2, KASME_1, KASME_2, NEXT_HOP_CHAINING_COUNT, EPC_TEID, SPGW_IP, GET_ENB, raw_enb_id.buf);
     
