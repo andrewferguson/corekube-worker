@@ -74,7 +74,7 @@ status_t handle_handoverrequired(s1ap_message_t *received_message, S1AP_handler_
     
     c_uint8_t buffer[1024];
     corekube_db_pulls_t db_pulls;
-    status_t db_access = get_handover_required_prerequisites_from_db(MME_UE_S1AP_ID, target_enb_id, buffer, &db_pulls);
+    status_t db_access = get_handover_required_prerequisites_from_db(MME_UE_S1AP_ID, target_enb_id, response->enbSocket, buffer, &db_pulls);
     d_assert(db_access == CORE_OK, return CORE_ERROR, "Failed to access DB for handover prerequisities");
     
     // generate the new key
@@ -117,7 +117,7 @@ status_t handle_handoverrequired(s1ap_message_t *received_message, S1AP_handler_
     return CORE_OK;
 }
 
-status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint32_t enb_id, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls) {
+status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint32_t enb_id, c_uint32_t source_enb_socket, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls) {
     d_info("Fetching Handover Required prerequisites from DB");
 
     OCTET_STRING_t raw_mme_ue_id;
@@ -128,14 +128,12 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
 
     int n;
 
-    // reset the NAS sequence numbers to zero, because the Security Mode Command
-    // (sent as a response) requires a new security context
     n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
-    core_free(raw_mme_ue_id.buf);
 
     const int NUM_PULL_ITEMS = 8;
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KNH_1, KNH_2, KASME_1, KASME_2, NEXT_HOP_CHAINING_COUNT, EPC_TEID, SPGW_IP, GET_ENB, raw_enb_id.buf);
+    core_free(raw_enb_id.buf);
     
     d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
@@ -150,6 +148,26 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
         "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
+
+    // additional DB access:
+    // now that we have the target eNB socket number
+    // we can save both the source and target sockets into the UE DB
+
+    OCTET_STRING_t raw_source_enb_socket;
+    s1ap_uint32_to_OCTET_STRING(source_enb_socket, &raw_source_enb_socket);
+
+    n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 2, ENB_SOURCE_SOCKET, raw_source_enb_socket.buf, ENB_TARGET_SOCKET, db_pulls->get_enb);
+    n = pull_items(buffer, n, 0);
+
+    d_info("DB access, waiting for mutex");
+    pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
+    send_request(db_sock, buffer, n);
+    pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
+
+    core_free(raw_mme_ue_id.buf);
+    core_free(raw_source_enb_socket.buf);
 
     return CORE_OK;
 }
