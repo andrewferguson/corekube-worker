@@ -151,6 +151,15 @@ void runMessage(char * ip_address, int message_number) {
         "000000f1100019c0100000f1100019b0"
         "1100000c";
 
+    char * HandoverRequestAcknowledge =
+        "0f0a0c0e"
+        "2001005c0000040000400200"
+        "050008400200020012401a0000144015"
+        "60a1f0c0a80103000000040f80c0a801"
+        "0300000005007b002b2a0028013100d8"
+        "800000203458100002f000b002400420"
+        "002000000bcb833321834c0002640800"
+        "0f840900";
 
     switch (message_number) {
         case 1:
@@ -185,6 +194,9 @@ void runMessage(char * ip_address, int message_number) {
             break;
         case 11:
             send_message(ip_address, HandoverRequired, 1);
+            break;
+        case 12:
+            send_message(ip_address, HandoverRequestAcknowledge, 1);
             break;
         default:
             d_info("Unknown message number %d", message_number);

@@ -23,6 +23,7 @@
 #include "initialuemessage.h"
 #include "uplinknastransport.h"
 #include "handoverrequired.h"
+#include "handoverrequestacknowledge.h"
 
 #include "core/include/3gpp_types.h"
 
@@ -162,6 +163,8 @@ status_t s1ap_successfulOutcome_handler(s1ap_message_t *s1ap_message, S1AP_handl
             d_info("Received UEContextReleaseComplete");
             d_info("Nothing to handle, no response to return");
             return CORE_OK;
+        case S1AP_SuccessfulOutcome__value_PR_HandoverRequestAcknowledge:
+            return handle_handoverrequestacknowledge(s1ap_message, response);
         default:
             d_error("Unknown S1AP SuccessfulOutcome type: %d", successfulOutcome->value.present);
             return CORE_ERROR;
