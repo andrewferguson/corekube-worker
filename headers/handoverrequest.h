@@ -1,5 +1,5 @@
-#ifndef __S1AP_HANDLER_S1SETUPRESPONSE_H__
-#define __S1AP_HANDLER_S1SETUPRESPONSE_H__
+#ifndef __S1AP_HANDLER_HANDOVERREQUEST_H__
+#define __S1AP_HANDLER_HANDOVERREQUEST_H__
 
 #include "s1ap/asn1c/asn_system.h"
 #include "s1ap/s1ap_message.h"
@@ -33,4 +33,4 @@ status_t s1ap_build_handover_request(handover_request_params_t *params, s1ap_mes
 
 
 
-#endif /* __S1AP_HANDLER_S1SETUPRESPONSE_H__ */
+#endif /* __S1AP_HANDLER_HANDOVERREQUEST_H__ */
