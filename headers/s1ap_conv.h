@@ -36,6 +36,9 @@ CORE_DECLARE(void) s1ap_ENB_ID_to_uint32(
 CORE_DECLARE(void) s1ap_buffer_to_OCTET_STRING(
         void *buf, int size, S1AP_TBCD_STRING_t *tbcd_string);
 
+CORE_DECLARE(status_t) s1ap_copy_ie(
+        const asn_TYPE_descriptor_t *td, void *src, void *dst);
+
 int array_to_int(uint8_t * buffer);
 
 #endif /* __S1AP_CONV_H__ */

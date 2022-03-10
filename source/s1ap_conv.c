@@ -1,5 +1,6 @@
 #include "s1ap_conv.h"
 #include "s1ap/asn1c/asn_SEQUENCE_OF.h"
+#include "core/include/3gpp_types.h" // for MAX_SDU_LEN
 
 // Some of these functions are taken from, or heavily
 // inspired by, the functions in nextepc/src/mme/s1ap_conv.c
@@ -64,6 +65,35 @@ void s1ap_ENB_ID_to_uint32(S1AP_ENB_ID_t *eNB_ID, c_uint32_t *uint32)
     {
         d_assert(0, return, "Invalid param");
     }
+}
+
+status_t s1ap_copy_ie(const asn_TYPE_descriptor_t *td, void *src, void *dst)
+{
+    asn_enc_rval_t enc_ret = {0};
+    asn_dec_rval_t dec_ret = {0};
+    c_uint8_t buffer[MAX_SDU_LEN];
+
+    d_assert(td, return CORE_ERROR,);
+    d_assert(src, return CORE_ERROR,);
+    d_assert(dst, return CORE_ERROR,);
+
+    enc_ret = aper_encode_to_buffer(td, NULL, src, buffer, MAX_SDU_LEN);
+    if (enc_ret.encoded < 0)
+    {
+        d_error("aper_encode_to_buffer() failed[%d]", enc_ret.encoded);
+        return CORE_ERROR;
+    }
+
+    dec_ret = aper_decode(NULL, td, (void **)&dst,
+            buffer, (enc_ret.encoded >> 3), 0, 0);
+
+    if (dec_ret.code != RC_OK)
+    {
+        d_error("aper_decode() failed[%d]", dec_ret.code);
+        return CORE_ERROR;
+    }
+
+    return CORE_OK;
 }
 
 int array_to_int(uint8_t * buffer)
