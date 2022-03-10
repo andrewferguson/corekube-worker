@@ -167,6 +167,12 @@ void runMessage(char * ip_address, int message_number) {
         "04000800020003005a00110000005940"
         "0b0500010d000000010d0000";
 
+    char * HandoverNotify =
+        "0f0a0c0e"
+        "000240250000040000000200"
+        "05000800020002006440080000f11000"
+        "19c010004340060000f1100001";
+
     switch (message_number) {
         case 1:
             send_message(ip_address, S1SetupRequest, 1);
@@ -206,6 +212,9 @@ void runMessage(char * ip_address, int message_number) {
             break;
         case 13:
             send_message(ip_address, ENBStatusTransfer, 1);
+            break;
+        case 14:
+            send_message(ip_address, HandoverNotify, 1);
             break;
         default:
             d_info("Unknown message number %d", message_number);
