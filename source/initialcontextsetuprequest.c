@@ -291,7 +291,7 @@ status_t s1ap_build_initial_context_setup_request(
     // the ul_count is stored in the DB as 6-bytes, we only care about 4-bytes
     // subtract 1 from the count because it is accessed separately and therefore will
     // be one larger than it would otherwise be
-    c_uint32_t nas_ul_count = array_to_int(db_pulls->ue_nas_sequence_number+2) - 1;
+    c_uint32_t nas_ul_count = 0; //array_to_int(db_pulls->ue_nas_sequence_number+2) - 1;
 
     // calculate the Kenb from Kasme
     kdf_enb(kasme, nas_ul_count, kenb);
