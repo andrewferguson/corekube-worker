@@ -156,13 +156,14 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
     OCTET_STRING_t raw_source_enb_socket;
     s1ap_uint32_to_OCTET_STRING(source_enb_socket, &raw_source_enb_socket);
 
-    n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 2, ENB_SOURCE_SOCKET, raw_source_enb_socket.buf, ENB_TARGET_SOCKET, db_pulls->get_enb);
-    n = pull_items(buffer, n, 0);
+    c_uint8_t save_buffer[1024];
+    n = push_items(save_buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 2, ENB_SOURCE_SOCKET, raw_source_enb_socket.buf, ENB_TARGET_SOCKET, db_pulls->get_enb);
+    n = pull_items(save_buffer, n, 0);
 
     d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
     d_info("DB access, mutex accessed");
-    send_request(db_sock, buffer, n);
+    send_request(db_sock, save_buffer, n);
     pthread_mutex_unlock(&db_sock_mutex);
     d_info("DB access, received response");
 
