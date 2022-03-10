@@ -176,6 +176,9 @@ status_t generate_authentication_vector(c_uint8_t *k, c_uint8_t *opc, c_uint8_t 
     
     c_uint8_t amf[] = { 0x80, 0x00 };
 
+    uint8_t zerosqn[6] = {0x00};
+    memcpy(sqn, zerosqn, 6);
+
     // generate the autn and associated values
     c_uint8_t res[8];
     c_uint8_t ck[16];
