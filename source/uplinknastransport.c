@@ -184,7 +184,13 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
             if (switch_off) {
                 d_info("Detach with UE switch off");
 
-                status_t context_release = s1ap_build_ue_context_release_command(*mme_ue_id, *enb_ue_id, response->response);
+                ue_context_release_command_params_t context_release_params;
+                context_release_params.mme_ue_id = *mme_ue_id;
+                context_release_params.enb_ue_id = *enb_ue_id;
+                context_release_params.cause.present = S1AP_Cause_PR_nas;
+                context_release_params.cause.choice.nas = S1AP_CauseNas_detach;
+
+                status_t context_release = s1ap_build_ue_context_release_command(&context_release_params, response->response);
                 d_assert(context_release == CORE_OK, return CORE_ERROR, "Failed to build UEInitialContextReleaseCommand");
 
                 response->outcome = HAS_RESPONSE;
@@ -197,8 +203,14 @@ status_t handle_uplinknastransport(s1ap_message_t *received_message, S1AP_handle
             d_assert(nas_handle_detach == CORE_OK, return CORE_ERROR, "Failed to handle NAS detach");
 
             // also return an additional message - UEInitialContextReleaseCommand
-            status_t additional_msg = s1ap_build_ue_context_release_command(*mme_ue_id, *enb_ue_id, response->response2);
-            d_assert(additional_msg == CORE_OK, return CORE_ERROR, "Failed to build UEInitialContextReleaseCommand");
+            ue_context_release_command_params_t context_release_params;
+            context_release_params.mme_ue_id = *mme_ue_id;
+            context_release_params.enb_ue_id = *enb_ue_id;
+            context_release_params.cause.present = S1AP_Cause_PR_nas;
+            context_release_params.cause.choice.nas = S1AP_CauseNas_detach;
+
+            status_t additional_message = s1ap_build_ue_context_release_command(&context_release_params, response->response2);
+            d_assert(additional_message == CORE_OK, return CORE_ERROR, "Failed to build UEInitialContextReleaseCommand");
 
             // mark this message as being a special case with two replies
             response->outcome = DUAL_RESPONSE;

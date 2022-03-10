@@ -3,7 +3,7 @@
 // the following function is heavily adapted from 
 // s1ap_build_ue_context_release_command() in
 // the file nextepc/src/mme/s1ap_build.c
-status_t s1ap_build_ue_context_release_command(S1AP_MME_UE_S1AP_ID_t mme_ue_id, S1AP_ENB_UE_S1AP_ID_t enb_ue_id, s1ap_message_t *pdu) {
+status_t s1ap_build_ue_context_release_command(ue_context_release_command_params_t *params, s1ap_message_t *pdu) {
     d_info("Building S1AP UEInitialContextReleaseCommand");
 
     S1AP_InitiatingMessage_t *initiatingMessage = NULL;
@@ -44,11 +44,10 @@ status_t s1ap_build_ue_context_release_command(S1AP_MME_UE_S1AP_ID_t mme_ue_id, 
 
     UE_S1AP_IDs->present = S1AP_UE_S1AP_IDs_PR_uE_S1AP_ID_pair;
     UE_S1AP_IDs->choice.uE_S1AP_ID_pair = core_calloc(1, sizeof(S1AP_UE_S1AP_ID_pair_t));
-    UE_S1AP_IDs->choice.uE_S1AP_ID_pair->mME_UE_S1AP_ID = mme_ue_id;
-    UE_S1AP_IDs->choice.uE_S1AP_ID_pair->eNB_UE_S1AP_ID = enb_ue_id;
+    UE_S1AP_IDs->choice.uE_S1AP_ID_pair->mME_UE_S1AP_ID = params->mme_ue_id;
+    UE_S1AP_IDs->choice.uE_S1AP_ID_pair->eNB_UE_S1AP_ID = params->enb_ue_id;
 
-    Cause->present = S1AP_Cause_PR_nas;
-    Cause->choice.nas = S1AP_CauseNas_detach;
+    memcpy(Cause, &params->cause, sizeof(S1AP_Cause_t));
 
     return CORE_OK;
 }
