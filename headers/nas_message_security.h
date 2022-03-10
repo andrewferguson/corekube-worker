@@ -15,8 +15,8 @@
 #define COREKUBE_ENC_ALGORITHM NAS_SECURITY_ALGORITHMS_EEA0
 #define COREKUBE_INT_ALGORITHM NAS_SECURITY_ALGORITHMS_128_EIA2
 
-#define EEA_JUST_EEA0 0x80
-#define EEA_JUST_EIA2 0x20
+#define EEA_JUST_EEA0 0b11110000
+#define EEA_JUST_EIA2 0b01110000
 
 // taken from nextepc/src/mme/nas_security.h
 typedef struct _nas_security_header_type_t {
