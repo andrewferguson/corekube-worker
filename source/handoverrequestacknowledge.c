@@ -73,7 +73,7 @@ status_t handle_handoverrequestacknowledge(s1ap_message_t *received_message, S1A
 
     c_uint8_t buffer[1024];
     corekube_db_pulls_t db_pulls;
-    status_t db_access = get_handover_request_acknowledge_prerequisites_from_db(MME_UE_S1AP_ID, buffer, &db_pulls);
+    status_t db_access = get_handover_request_acknowledge_prerequisites_from_db(MME_UE_S1AP_ID, ENB_UE_S1AP_ID, buffer, &db_pulls);
     d_assert(db_access == CORE_OK, return CORE_ERROR, "Failed to access DB for handover prerequisities");
 
     // prepare the values for the response
@@ -105,16 +105,20 @@ status_t handle_handoverrequestacknowledge(s1ap_message_t *received_message, S1A
     return CORE_OK;
 }
 
-status_t get_handover_request_acknowledge_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls) {
-    d_info("Fetching Handover Required prerequisites from DB");
+status_t get_handover_request_acknowledge_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, S1AP_ENB_UE_S1AP_ID_t * target_enb_ue_s1ap_id, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls) {
+    d_info("Fetching Handover Request Acknowledge prerequisites from DB");
 
     OCTET_STRING_t raw_mme_ue_id;
     s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
 
-    int n;
+    OCTET_STRING_t raw_target_enb_ue_s1ap_id;
+    s1ap_uint32_to_OCTET_STRING(*target_enb_ue_s1ap_id, &raw_target_enb_ue_s1ap_id);
 
-    n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 0);
+    int n;
+    // save the target_ue_s1ap_id so it can be retreived by the ENB Status Transfer message
+    n = push_items(buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 1, Target_ENB_UE_S1AP_ID, raw_target_enb_ue_s1ap_id.buf);
     core_free(raw_mme_ue_id.buf);
+    core_free(raw_target_enb_ue_s1ap_id.buf);
 
     const int NUM_PULL_ITEMS = 2;
     n = pull_items(buffer, n, NUM_PULL_ITEMS, ENB_UE_S1AP_ID, ENB_SOURCE_SOCKET);
