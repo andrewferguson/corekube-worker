@@ -101,7 +101,7 @@ status_t handle_handoverrequired(s1ap_message_t *received_message, S1AP_handler_
 
     // values fetched from the DB
     memcpy(handover_params.nh, new_knh, 32);
-    handover_params.nhcc = *db_pulls.ncc;
+    handover_params.nhcc = *db_pulls.ncc + 1;
     handover_params.ipv4_addr = array_to_int(db_pulls.spgw_ip);
     handover_params.sgw_teid = array_to_int(db_pulls.epc_teid);
 
