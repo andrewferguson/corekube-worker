@@ -54,7 +54,7 @@ status_t handle_handovernotify(s1ap_message_t *message, S1AP_handler_response_t 
     d_assert(EUTRAN_CGI, return CORE_ERROR, "Failed to extract EUTRAN_CGI");
     d_assert(TAI, return CORE_ERROR, "Failed to extract TAI");
 
-    // retreive the target eNB socket number and target ENB_UE_S1AP_ID
+    // retreive the source eNB socket number and ENB_UE_S1AP_ID
     c_uint8_t buffer[1024];
     corekube_db_pulls_t db_pulls;
     status_t db_access = get_handover_notify_prerequisites_from_db(MME_UE_S1AP_ID, buffer, &db_pulls);
@@ -73,6 +73,12 @@ status_t handle_handovernotify(s1ap_message_t *message, S1AP_handler_response_t 
 
     status_t context_release = s1ap_build_ue_context_release_command(&context_release_params, response->response);
     d_assert(context_release == CORE_OK, return CORE_ERROR, "Failed to build UEInitialContextReleaseCommand");
+
+    // now that the handover has completed successfully, set the ENB_UE_S1AP_ID
+    // of this UE to the ID held by the "target" eNB, since the target eNB is now
+    // the source (serving) eNB
+    status_t db_save = save_handover_notify_enb_id_in_db(*MME_UE_S1AP_ID, *ENB_UE_S1AP_ID);
+    d_assert(db_save == CORE_OK, return CORE_ERROR, "Failed to Save ENB_UE_S1AP_ID into DB");
 
     // set the response to having a single reply
     response->outcome = HAS_RESPONSE;
@@ -110,6 +116,33 @@ status_t get_handover_notify_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue
         "Failed to extract values from DB");
 
     extract_db_values(buffer, n, db_pulls);
+
+    return CORE_OK;
+}
+
+status_t save_handover_notify_enb_id_in_db(S1AP_MME_UE_S1AP_ID_t mme_ue_id, S1AP_MME_UE_S1AP_ID_t enb_ue_id) {
+    d_info("Saving Handover Notify ENB_UE_S1AP_ID into DB");
+
+    OCTET_STRING_t raw_mme_ue_id;
+    s1ap_uint32_to_OCTET_STRING(mme_ue_id, &raw_mme_ue_id);
+
+    OCTET_STRING_t raw_enb_ue_id;
+    s1ap_uint32_to_OCTET_STRING(enb_ue_id, &raw_enb_ue_id);
+
+    int n;
+    c_uint8_t save_buffer[1024];
+    n = push_items(save_buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 1, ENB_UE_S1AP_ID, raw_enb_ue_id.buf);
+    core_free(raw_mme_ue_id.buf);
+    core_free(raw_enb_ue_id.buf);
+
+    n = pull_items(save_buffer, n, 0);
+
+    d_info("DB access, waiting for mutex");
+    pthread_mutex_lock(&db_sock_mutex);
+    d_info("DB access, mutex accessed");
+    send_request(db_sock, save_buffer, n);
+    pthread_mutex_unlock(&db_sock_mutex);
+    d_info("DB access, received response");
 
     return CORE_OK;
 }
