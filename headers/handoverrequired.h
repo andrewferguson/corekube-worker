@@ -6,9 +6,17 @@
 #include "s1ap_handler.h"
 #include <libck.h>
 
+typedef struct handover_required_save_db_params {
+    c_uint32_t source_enb_socket;
+    c_uint32_t target_enb_socket;
+    c_uint8_t * knh;
+} handover_required_save_db_params_t;
+
 status_t handle_handoverrequired(s1ap_message_t *received_message, S1AP_handler_response_t *response);
 
 status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, c_uint32_t enb_id, c_uint32_t source_enb_socket, c_uint8_t *buffer, corekube_db_pulls_t *db_pulls);
+
+status_t save_handover_required_results_info_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, handover_required_save_db_params_t * save_params);
 
 void mme_kdf_nh(c_uint8_t *kasme, c_uint8_t *sync_input, c_uint8_t *kenb);
 

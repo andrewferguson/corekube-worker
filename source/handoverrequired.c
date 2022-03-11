@@ -87,8 +87,15 @@ status_t handle_handoverrequired(s1ap_message_t *received_message, S1AP_handler_
     c_uint8_t new_knh[SHA256_DIGEST_SIZE];
     mme_kdf_nh(kasme, current_knh, new_knh);
 
-    // TODO: store the new KNH into the DB
-    //       (required for future handovers)
+    // store the new KNH into the DB (required for future handovers)
+    // along with the source and target eNB sockets
+    // (required for later messages in the handover procedure)
+    handover_required_save_db_params_t save_params;
+    save_params.knh = new_knh;
+    save_params.source_enb_socket = response->enbSocket;
+    save_params.target_enb_socket = array_to_int(db_pulls.get_enb);
+    status_t db_save = save_handover_required_results_info_db(MME_UE_S1AP_ID, &save_params);
+    d_assert(db_save == CORE_OK, return CORE_ERROR, "Failed to save parameters in DB");
 
     // prepare the values for the response
     handover_request_params_t handover_params;
@@ -134,6 +141,7 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
     n = pull_items(buffer, n, NUM_PULL_ITEMS,
         KNH_1, KNH_2, KASME_1, KASME_2, NEXT_HOP_CHAINING_COUNT, EPC_TEID, SPGW_IP, GET_ENB, raw_enb_id.buf);
     core_free(raw_enb_id.buf);
+    core_free(raw_mme_ue_id.buf);
     
     d_info("DB access, waiting for mutex");
     pthread_mutex_lock(&db_sock_mutex);
@@ -149,15 +157,26 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
 
     extract_db_values(buffer, n, db_pulls);
 
-    // additional DB access:
-    // now that we have the target eNB socket number
-    // we can save both the source and target sockets into the UE DB
+    return CORE_OK;
+}
 
+status_t save_handover_required_results_info_db(S1AP_MME_UE_S1AP_ID_t *mme_ue_id, handover_required_save_db_params_t * save_params) {
+    d_info("Saving Handover Required results into DB");
+
+    OCTET_STRING_t raw_mme_ue_id;
+    s1ap_uint32_to_OCTET_STRING(*mme_ue_id, &raw_mme_ue_id);
     OCTET_STRING_t raw_source_enb_socket;
-    s1ap_uint32_to_OCTET_STRING(source_enb_socket, &raw_source_enb_socket);
+    s1ap_uint32_to_OCTET_STRING(save_params->source_enb_socket, &raw_source_enb_socket);
+    OCTET_STRING_t raw_target_enb_socket;
+    s1ap_uint32_to_OCTET_STRING(save_params->target_enb_socket, &raw_target_enb_socket);
 
     c_uint8_t save_buffer[1024];
-    n = push_items(save_buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 2, ENB_SOURCE_SOCKET, raw_source_enb_socket.buf, ENB_TARGET_SOCKET, db_pulls->get_enb);
+    int n;
+    n = push_items(save_buffer, MME_UE_S1AP_ID, (uint8_t *)raw_mme_ue_id.buf, 4,
+        ENB_SOURCE_SOCKET, raw_source_enb_socket.buf,
+        ENB_TARGET_SOCKET, raw_target_enb_socket.buf,
+        KNH_1, save_params->knh,
+        KNH_2, save_params->knh+16);
     n = pull_items(save_buffer, n, 0);
 
     d_info("DB access, waiting for mutex");
@@ -168,7 +187,6 @@ status_t get_handover_required_prerequisites_from_db(S1AP_MME_UE_S1AP_ID_t *mme_
     d_info("DB access, received response");
 
     core_free(raw_mme_ue_id.buf);
-    core_free(raw_source_enb_socket.buf);
 
     return CORE_OK;
 }
